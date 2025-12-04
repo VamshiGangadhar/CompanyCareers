@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { authAPI } from "../utils/apiClient";
+import { useAuth } from "../context/AuthContext";
 import {
   Box,
   Card,
@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -64,24 +65,21 @@ const SignUp = () => {
 
     setLoading(true);
     try {
-      const result = await authAPI.register(formData.email, formData.password, {
-        full_name: formData.fullName,
+      const result = await signup({
+        email: formData.email,
+        password: formData.password,
+        name: formData.fullName,
       });
 
       if (result.success) {
-        toast.success(
-          "Account created successfully! Please check your email for verification."
-        );
-        navigate("/login", {
-          state: {
-            message:
-              "Account created! Please check your email to verify your account before logging in.",
-          },
-        });
+        toast.success("Account created successfully!");
+        navigate("/");
+      } else {
+        toast.error(result.error || "Failed to create account");
       }
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error(error.error?.message || "Failed to create account");
+      toast.error("Failed to create account");
     } finally {
       setLoading(false);
     }

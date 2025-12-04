@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { authAPI } from "../utils/apiClient";
 
 const AuthContext = createContext({});
 
@@ -16,10 +15,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
     const userData = localStorage.getItem("userData");
-
-    if (token && userData) {
+    if (userData) {
       setUser(JSON.parse(userData));
     }
     setLoading(false);
@@ -27,44 +24,53 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      const response = await authAPI.login(
-        credentials.email,
-        credentials.password
-      );
-      const { user, session } = response.data;
-
-      if (session?.access_token) {
-        localStorage.setItem("authToken", session.access_token);
-      }
-      localStorage.setItem("userData", JSON.stringify(user));
-      setUser(user);
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.error?.message || error.message || "Login failed",
+      // Simple mock login - replace with your backend API call later
+      const mockUser = {
+        id: 1,
+        email: credentials.email,
+        name: credentials.email.split("@")[0],
       };
+
+      localStorage.setItem("userData", JSON.stringify(mockUser));
+      setUser(mockUser);
+
+      return { success: true, user: mockUser };
+    } catch (error) {
+      console.error("Login error:", error);
+      return { success: false, error: error.message };
     }
   };
 
-  const logout = async () => {
+  const signup = async (userData) => {
     try {
-      await authAPI.logout();
+      // Simple mock signup - replace with your backend API call later
+      const mockUser = {
+        id: Date.now(),
+        email: userData.email,
+        name: userData.name || userData.email.split("@")[0],
+      };
+
+      localStorage.setItem("userData", JSON.stringify(mockUser));
+      setUser(mockUser);
+
+      return { success: true, user: mockUser };
     } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("userData");
-      setUser(null);
+      console.error("Signup error:", error);
+      return { success: false, error: error.message };
     }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("userData");
+    setUser(null);
   };
 
   const value = {
     user,
-    loading,
     login,
+    signup,
     logout,
+    loading,
     isAuthenticated: !!user,
   };
 

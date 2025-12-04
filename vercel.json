@@ -8,24 +8,5 @@
         "distDir": "dist"
       }
     }
-  ],
-  "functions": {
-    "api/*.js": {
-      "maxDuration": 30
-    }
-  },
-  "routes": [
-    {
-      "src": "/api/event",
-      "dest": "/api/event.js"
-    },
-    {
-      "src": "/health",
-      "dest": "/api/health.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
   ]
 }
