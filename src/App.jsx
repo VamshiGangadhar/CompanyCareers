@@ -2,6 +2,8 @@ import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import Dashboard from "./pages/Dashboard";
+import CompanySetup from "./pages/CompanySetup";
 import CompanyEditor from "./pages/CompanyEditor";
 import CompanyPreview from "./pages/CompanyPreview";
 import CareersPage from "./pages/CareersPage";
@@ -13,6 +15,22 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/setup"
+          element={
+            <ProtectedRoute>
+              <CompanySetup />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/company/:slug/edit"
           element={
@@ -30,7 +48,7 @@ function App() {
           }
         />
         <Route path="/:slug/careers" element={<CareersPage />} />
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Dashboard />} />
       </Routes>
     </AuthProvider>
   );

@@ -1,8 +1,32 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, Link } from "react-router-dom";
 import useCompanyStore from "../context/companyStore";
-import Layout from "../components/Layout";
 import JobList from "../components/JobList";
+import {
+  Box,
+  Container,
+  Typography,
+  Paper,
+  Stack,
+  Chip,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  Backdrop,
+  Alert,
+  Fab,
+  Grid,
+} from "@mui/material";
+import {
+  Work,
+  LocationOn,
+  Business,
+  ArrowForward,
+  Email,
+  Phone,
+  Language,
+} from "@mui/icons-material";
 
 const CareersPage = () => {
   const { slug } = useParams();
@@ -16,198 +40,539 @@ const CareersPage = () => {
     }
   }, [slug, fetchCompany, fetchJobs]);
 
-  const handleFiltersChange = (newFilters) => {
-    setJobFilters(newFilters);
-    fetchJobs(slug, newFilters);
-  };
+  const handleFiltersChange = useCallback(
+    (newFilters) => {
+      setJobFilters(newFilters);
+      fetchJobs(slug, newFilters);
+    },
+    [slug, fetchJobs]
+  );
+
+  const branding = company?.branding || {};
+  const sections = company?.sections || {};
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading careers page...</p>
-        </div>
-      </div>
+      <Backdrop
+        open={true}
+        sx={{
+          zIndex: 1200,
+          backgroundColor: branding.backgroundColor || "#f9fafb",
+        }}
+      >
+        <Box textAlign="center">
+          <CircularProgress
+            size={60}
+            sx={{ color: branding.primaryColor || "#3b82f6" }}
+          />
+          <Typography
+            variant="h6"
+            sx={{ mt: 2, color: branding.textColor || "#374151" }}
+          >
+            Loading careers page...
+          </Typography>
+        </Box>
+      </Backdrop>
     );
   }
 
   if (!company) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Company Not Found
-          </h1>
-          <p className="text-gray-600">
-            The careers page you're looking for doesn't exist.
-          </p>
-        </div>
-      </div>
+      <Box sx={{ backgroundColor: "#f9fafb", minHeight: "100vh", py: 8 }}>
+        <Container maxWidth="md" textAlign="center">
+          <Alert severity="info" sx={{ mb: 4 }}>
+            <Typography variant="h4" gutterBottom>
+              Careers Page Not Found
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              This company's careers page is not available or doesn't exist.
+            </Typography>
+          </Alert>
+          <Button variant="contained" component={Link} to="/">
+            Go Home
+          </Button>
+        </Container>
+      </Box>
     );
   }
 
-  const renderSection = (section) => {
-    if (!section.visible) return null;
+  const renderSection = (sectionKey, section) => {
+    if (!section || !section.visible) return null;
 
-    const sectionId = section.id;
-    const content = section.content;
+    const sectionStyle = {
+      backgroundColor: branding.backgroundColor || "#ffffff",
+      color: branding.textColor || "#374151",
+      fontFamily: branding.typography?.fontFamily || "Inter",
+      fontSize:
+        branding.typography?.fontSize === "small"
+          ? "14px"
+          : branding.typography?.fontSize === "large"
+          ? "18px"
+          : "16px",
+      fontWeight: branding.typography?.fontWeight || "normal",
+      borderRadius:
+        branding.layout?.borderRadius === "none"
+          ? 0
+          : branding.layout?.borderRadius === "small"
+          ? 1
+          : branding.layout?.borderRadius === "large"
+          ? 3
+          : 2,
+      marginBottom:
+        branding.layout?.spacing === "tight"
+          ? 2
+          : branding.layout?.spacing === "loose"
+          ? 6
+          : 4,
+    };
 
     switch (section.type) {
       case "hero":
         return (
-          <section key={sectionId} className="text-center py-20">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              {section.title}
-            </h1>
-            {content.subtitle && (
-              <p className="text-xl max-w-3xl mx-auto">{content.subtitle}</p>
+          <Paper
+            key={sectionKey}
+            elevation={3}
+            sx={{
+              ...sectionStyle,
+              p: { xs: 4, md: 8 },
+              textAlign: "center",
+              ...(branding.banner
+                ? {
+                    backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${branding.banner})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                  }
+                : {
+                    background: `linear-gradient(135deg, ${
+                      branding.primaryColor || "#3b82f6"
+                    } 0%, ${branding.secondaryColor || "#1f2937"} 100%)`,
+                  }),
+              color: "#ffffff",
+            }}
+          >
+            {branding.logo && !branding.banner && (
+              <Box
+                component="img"
+                src={branding.logo}
+                alt={company.name}
+                sx={{
+                  height: { xs: 60, md: 80 },
+                  mb: 3,
+                  maxWidth: "100%",
+                  objectFit: "contain",
+                  filter: "brightness(0) invert(1)", // Make logo white on colored background
+                }}
+              />
             )}
-          </section>
+            <Typography
+              variant="h1"
+              component="h1"
+              sx={{
+                fontWeight: "bold",
+                mb: 2,
+                fontSize: { xs: "2.5rem", md: "3.5rem" },
+                textShadow: branding.banner
+                  ? "2px 2px 4px rgba(0,0,0,0.7)"
+                  : "none",
+              }}
+            >
+              {section.title || "Join Our Team"}
+            </Typography>
+            {section.content?.subtitle && (
+              <Typography
+                variant="h4"
+                sx={{
+                  mb: 4,
+                  opacity: 0.9,
+                  textShadow: branding.banner
+                    ? "1px 1px 2px rgba(0,0,0,0.7)"
+                    : "none",
+                }}
+              >
+                {section.content.subtitle}
+              </Typography>
+            )}
+            {section.content?.description && (
+              <Typography
+                variant="h6"
+                sx={{
+                  maxWidth: 800,
+                  mx: "auto",
+                  mb: 4,
+                  opacity: 0.8,
+                  textShadow: branding.banner
+                    ? "1px 1px 2px rgba(0,0,0,0.7)"
+                    : "none",
+                }}
+              >
+                {section.content.description}
+              </Typography>
+            )}
+            <Button
+              variant="contained"
+              size="large"
+              sx={{
+                backgroundColor: "#ffffff",
+                color: branding.primaryColor || "#3b82f6",
+                "&:hover": {
+                  backgroundColor: "#f9fafb",
+                },
+                px: 4,
+                py: 1.5,
+              }}
+              href="#jobs"
+            >
+              View Open Positions
+            </Button>
+          </Paper>
         );
 
       case "about":
         return (
-          <section key={sectionId} className="py-16">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-3xl font-bold mb-8 text-center">
-                {section.title}
-              </h2>
-              <div className="prose prose-lg mx-auto">
-                <p>{content.content}</p>
-              </div>
-            </div>
-          </section>
+          <Paper key={sectionKey} elevation={2} sx={{ ...sectionStyle, p: 4 }}>
+            <Typography
+              variant="h3"
+              sx={{ color: branding.primaryColor, mb: 3, fontWeight: "bold" }}
+            >
+              {section.title || "About Us"}
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{ lineHeight: 1.8, fontSize: "1.1rem" }}
+            >
+              {section.content?.content ||
+                "Learn more about our company culture and mission."}
+            </Typography>
+          </Paper>
         );
 
       case "values":
         return (
-          <section key={sectionId} className="py-16 bg-gray-50">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-3xl font-bold mb-12 text-center">
-                {section.title}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {content.items?.map((value, index) => (
-                  <div key={index} className="text-center">
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                      <h3 className="text-lg font-semibold">{value}</h3>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
+          <Paper key={sectionKey} elevation={2} sx={{ ...sectionStyle, p: 4 }}>
+            <Typography
+              variant="h3"
+              sx={{ color: branding.primaryColor, mb: 3, fontWeight: "bold" }}
+            >
+              {section.title || "Our Values"}
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{ lineHeight: 1.8, fontSize: "1.1rem" }}
+            >
+              {section.content?.content ||
+                "Our core values guide everything we do."}
+            </Typography>
+          </Paper>
         );
 
       case "benefits":
         return (
-          <section key={sectionId} className="py-16">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-3xl font-bold mb-12 text-center">
-                {section.title}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {content.items?.map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                    <span>{benefit}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
+          <Paper key={sectionKey} elevation={2} sx={{ ...sectionStyle, p: 4 }}>
+            <Typography
+              variant="h3"
+              sx={{ color: branding.primaryColor, mb: 3, fontWeight: "bold" }}
+            >
+              {section.title || "Why Work With Us"}
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{ lineHeight: 1.8, fontSize: "1.1rem" }}
+            >
+              {section.content?.content ||
+                "Discover the benefits of joining our team."}
+            </Typography>
+          </Paper>
         );
 
       case "team":
         return (
-          <section key={sectionId} className="py-16 bg-gray-50">
-            <div className="max-w-4xl mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-6">{section.title}</h2>
-              {content.description && (
-                <p className="text-lg mb-8">{content.description}</p>
-              )}
-              <div className="bg-white p-8 rounded-lg shadow-sm">
-                <p className="text-gray-500">
-                  Team member profiles would be displayed here
-                </p>
-              </div>
-            </div>
-          </section>
+          <Paper key={sectionKey} elevation={2} sx={{ ...sectionStyle, p: 4 }}>
+            <Typography
+              variant="h3"
+              sx={{ color: branding.primaryColor, mb: 3, fontWeight: "bold" }}
+            >
+              {section.title || "Meet Our Team"}
+            </Typography>
+            {section.content?.content && (
+              <Typography
+                variant="body1"
+                sx={{ lineHeight: 1.8, fontSize: "1.1rem", mb: 4 }}
+              >
+                {section.content.content}
+              </Typography>
+            )}
+            {company.team && company.team.length > 0 ? (
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, 1fr)",
+                    md: "repeat(3, 1fr)",
+                    lg: "repeat(4, 1fr)",
+                  },
+                  gap: 3,
+                  mt: 4,
+                }}
+              >
+                {company.team.map((member, index) => (
+                  <Card
+                    key={index}
+                    sx={{ textAlign: "center", height: "100%" }}
+                  >
+                    <CardContent sx={{ p: 3 }}>
+                      <Box
+                        sx={{
+                          width: 100,
+                          height: 100,
+                          borderRadius: "50%",
+                          mx: "auto",
+                          mb: 2,
+                          backgroundColor: member.image
+                            ? "transparent"
+                            : "#e0e0e0",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {member.image ? (
+                          <Box
+                            component="img"
+                            src={member.image}
+                            alt={member.name}
+                            sx={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        ) : (
+                          <Typography variant="h4" color="text.secondary">
+                            {member.name.charAt(0)}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Typography variant="h6" gutterBottom>
+                        {member.name}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        {member.position}
+                      </Typography>
+                      {member.department && (
+                        <Chip
+                          label={member.department}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ mb: 1 }}
+                        />
+                      )}
+                      {member.bio && (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mt: 1, lineHeight: 1.5 }}
+                        >
+                          {member.bio.length > 100
+                            ? `${member.bio.substring(0, 100)}...`
+                            : member.bio}
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+            ) : (
+              <Typography
+                variant="body1"
+                sx={{
+                  lineHeight: 1.8,
+                  fontSize: "1.1rem",
+                  fontStyle: "italic",
+                  color: "text.secondary",
+                }}
+              >
+                Team information will be displayed here once team members are
+                added.
+              </Typography>
+            )}
+          </Paper>
         );
 
       default:
-        return null;
+        return (
+          <Paper key={sectionKey} elevation={2} sx={{ ...sectionStyle, p: 4 }}>
+            <Typography
+              variant="h4"
+              sx={{ color: branding.primaryColor, mb: 2 }}
+            >
+              {section.title || "Section"}
+            </Typography>
+            <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
+              {section.content?.content || "Section content goes here."}
+            </Typography>
+          </Paper>
+        );
     }
   };
 
+  const containerMaxWidth =
+    branding.layout?.containerWidth === "full"
+      ? false
+      : branding.layout?.containerWidth === "wide"
+      ? "xl"
+      : branding.layout?.containerWidth === "narrow"
+      ? "md"
+      : "lg";
+
   return (
-    <Layout branding={company.branding}>
-      {/* SEO Meta Tags would be added here */}
-      <title>{company.name} - Careers</title>
+    <Box
+      sx={{
+        backgroundColor: branding.backgroundColor || "#f9fafb",
+        minHeight: "100vh",
+      }}
+    >
+      {/* Company Header */}
+      <Box sx={{ backgroundColor: "#ffffff", boxShadow: 1, py: 2, mb: 2 }}>
+        <Container maxWidth={containerMaxWidth}>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Box display="flex" alignItems="center">
+              {branding.logo && (
+                <Box
+                  component="img"
+                  src={branding.logo}
+                  alt={company.name}
+                  sx={{ height: 40, mr: 2 }}
+                />
+              )}
+              <Typography
+                variant="h5"
+                fontWeight="bold"
+                sx={{ color: branding.primaryColor }}
+              >
+                {company.name}
+              </Typography>
+            </Box>
+            <Chip
+              label={`${jobs?.length || 0} Open Positions`}
+              color="primary"
+              icon={<Work />}
+            />
+          </Box>
+        </Container>
+      </Box>
 
-      {/* Company Sections */}
-      <div>
-        {company.sections && company.sections.length > 0 ? (
-          company.sections.map(renderSection)
-        ) : (
-          <section className="text-center py-20">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Join {company.name}
-            </h1>
-            <p className="text-xl max-w-3xl mx-auto">
-              Discover exciting career opportunities with our team
-            </p>
-          </section>
-        )}
-      </div>
+      {/* Main Content */}
+      <Container maxWidth={containerMaxWidth}>
+        <Stack
+          spacing={
+            branding.layout?.spacing === "tight"
+              ? 3
+              : branding.layout?.spacing === "loose"
+              ? 8
+              : 5
+          }
+        >
+          {/* Render sections in order */}
+          {Object.entries(sections)
+            .filter(([, section]) => section && section.visible)
+            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0))
+            .map(([key, section]) => renderSection(key, section))}
 
-      {/* Jobs Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Open Positions
-          </h2>
-
-          <JobList
-            jobs={jobs}
-            filters={jobFilters}
-            onFiltersChange={handleFiltersChange}
-            loading={loading}
-          />
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-6xl mx-auto text-center">
-          <h3 className="text-xl font-semibold mb-4">{company.name}</h3>
-          <p className="text-gray-400 mb-6">
-            Thank you for your interest in joining our team
-          </p>
-          <div className="flex justify-center gap-6">
-            <a
-              href="#"
-              className="text-gray-400 hover:text-white transition-colors"
+          {/* Jobs Section */}
+          <Paper
+            id="jobs"
+            elevation={3}
+            sx={{ p: 4, backgroundColor: "#ffffff" }}
+          >
+            <Typography
+              variant="h3"
+              sx={{ color: branding.primaryColor, mb: 4, fontWeight: "bold" }}
             >
-              Privacy Policy
-            </a>
-            <a
-              href="#"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Terms of Service
-            </a>
-            <a
-              href="#"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Contact Us
-            </a>
-          </div>
-        </div>
-      </footer>
-    </Layout>
+              Open Positions
+            </Typography>
+
+            {jobs && jobs.length > 0 ? (
+              <JobList
+                jobs={jobs.filter((job) => job.isActive !== false)} // Only show published jobs
+                onFiltersChange={handleFiltersChange}
+                branding={branding}
+              />
+            ) : (
+              <Box textAlign="center" py={6}>
+                <Work sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+                <Typography variant="h5" gutterBottom color="text.secondary">
+                  No Open Positions
+                </Typography>
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{ mb: 3 }}
+                >
+                  We're not actively hiring right now, but we're always looking
+                  for talented individuals.
+                </Typography>
+                <Button variant="outlined" size="large">
+                  Join Our Talent Pool
+                </Button>
+              </Box>
+            )}
+          </Paper>
+
+          {/* Footer/Contact Section */}
+          <Paper
+            elevation={2}
+            sx={{
+              p: 4,
+              backgroundColor: branding.secondaryColor || "#1f2937",
+              color: "#ffffff",
+            }}
+          >
+            <Grid container spacing={4}>
+              <Grid item xs={12} md={8}>
+                <Typography variant="h5" gutterBottom>
+                  Ready to Join {company.name}?
+                </Typography>
+                <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                  We're excited to hear from you. If you don't see a position
+                  that fits, feel free to reach out anyway - we're always
+                  looking for exceptional talent.
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  sx={{
+                    backgroundColor: branding.primaryColor || "#3b82f6",
+                    "&:hover": {
+                      backgroundColor: branding.primaryColor
+                        ? `${branding.primaryColor}dd`
+                        : "#2563eb",
+                    },
+                  }}
+                  href="mailto:careers@company.com"
+                >
+                  Get In Touch
+                </Button>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Stack>
+      </Container>
+    </Box>
   );
 };
 

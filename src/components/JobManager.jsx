@@ -30,6 +30,7 @@ import {
   Tooltip,
   Badge,
   InputAdornment,
+  CircularProgress,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -46,6 +47,9 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
   DateRange as DateIcon,
+  Business as DepartmentIcon,
+  WorkOutline as JobTypeIcon,
+  CheckCircle as StatusIcon,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -54,7 +58,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import toast from "react-hot-toast";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const JobManager = () => {
   const { user } = useAuth();
@@ -67,6 +71,7 @@ const JobManager = () => {
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterActive, setFilterActive] = useState("all");
+  const [viewMode, setViewMode] = useState("grid"); // grid or list
 
   const [jobForm, setJobForm] = useState({
     title: "",
@@ -97,12 +102,25 @@ const JobManager = () => {
   const currencies = ["USD", "EUR", "GBP", "INR"];
 
   useEffect(() => {
-    if (company?.id) {
+    console.log("JobManager: Company changed:", {
+      hasCompany: !!company,
+      companyId: company?.id,
+      companySlug: company?.slug,
+    });
+
+    if (company?.id && company?.slug) {
       fetchJobs();
+    } else if (company === null) {
+      console.log("JobManager: Company is null, waiting for load");
     }
-  }, [company?.id]);
+  }, [company?.id, company?.slug]);
 
   const fetchJobs = async () => {
+    if (!company?.slug) {
+      console.log("Company not loaded yet, skipping fetch jobs");
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/event`, {
@@ -114,20 +132,22 @@ const JobManager = () => {
         body: JSON.stringify({
           step: "GET_JOBS",
           payload: {
-            companySlug: company.slug || "demo",
+            companySlug: company.slug,
           },
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setJobs(data.data.jobs || []);
+        setJobs(data.data?.jobs || []);
       } else {
-        throw new Error("Failed to fetch jobs");
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Failed to fetch jobs");
       }
     } catch (error) {
       console.error("Error fetching jobs:", error);
-      toast.error("Failed to load jobs");
+      toast.error(`Failed to load jobs: ${error.message}`);
+      setJobs([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -179,8 +199,26 @@ const JobManager = () => {
   };
 
   const handleSubmit = async () => {
+    if (!company?.id) {
+      toast.error("Company information not loaded. Please refresh the page.");
+      return;
+    }
+
+    if (!jobForm.title?.trim()) {
+      toast.error("Job title is required");
+      return;
+    }
+
     setLoading(true);
     try {
+      const token = localStorage.getItem("token");
+      console.log("JobManager: Submitting job:", {
+        editing: !!editingJob,
+        hasToken: !!token,
+        companyId: company.id,
+        title: jobForm.title,
+      });
+
       const submitData = {
         ...jobForm,
         deadline: jobForm.deadline ? jobForm.deadline.toISOString() : null,
@@ -198,7 +236,7 @@ const JobManager = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           step,
@@ -225,6 +263,11 @@ const JobManager = () => {
   };
 
   const handleDelete = async (jobId) => {
+    if (!jobId) {
+      toast.error("Invalid job ID");
+      return;
+    }
+
     if (!confirm("Are you sure you want to delete this job?")) return;
 
     try {
@@ -244,17 +287,28 @@ const JobManager = () => {
         toast.success("Job deleted successfully!");
         fetchJobs();
       } else {
-        throw new Error("Failed to delete job");
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Failed to delete job");
       }
     } catch (error) {
       console.error("Error deleting job:", error);
-      toast.error("Failed to delete job");
+      toast.error(`Failed to delete job: ${error.message}`);
     }
   };
 
   const handleToggleStatus = async (jobId) => {
+    if (!jobId) {
+      toast.error("Invalid job ID");
+      return;
+    }
+
     try {
       const job = jobs.find((j) => j.id === jobId);
+      if (!job) {
+        toast.error("Job not found");
+        return;
+      }
+
       const response = await fetch(`${API_URL}/api/event`, {
         method: "POST",
         headers: {
@@ -274,11 +328,14 @@ const JobManager = () => {
         toast.success("Job status updated!");
         fetchJobs();
       } else {
-        throw new Error("Failed to update job status");
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error?.message || "Failed to update job status"
+        );
       }
     } catch (error) {
       console.error("Error updating job status:", error);
-      toast.error("Failed to update job status");
+      toast.error(`Failed to update job status: ${error.message}`);
     }
   };
 
@@ -307,60 +364,186 @@ const JobManager = () => {
     ...new Set(jobs.map((job) => job.department).filter(Boolean)),
   ];
 
+  // Early return if company is not loaded
+  if (!company) {
+    return (
+      <Box textAlign="center" py={8}>
+        <CircularProgress size={60} />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          Loading company information...
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          Please wait while we load your company data
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!company.id) {
+    return (
+      <Box textAlign="center" py={8}>
+        <Typography variant="h6" color="error" gutterBottom>
+          Error: Company data incomplete
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Company information is missing required fields. Please try refreshing
+          the page.
+        </Typography>
+        <Button variant="contained" onClick={() => window.location.reload()}>
+          Refresh Page
+        </Button>
+      </Box>
+    );
+  }
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box>
-        {/* Header */}
-        <Box
+        {/* Enhanced Header with Stats */}
+        <Paper
+          elevation={2}
           sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            p: 4,
             mb: 4,
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            color: "white",
           }}
         >
-          <Box>
-            <Typography variant="h4" gutterBottom fontWeight="bold">
-              Job Management
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Create and manage job postings for your careers page
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-            size="large"
-          >
-            Create New Job
-          </Button>
-        </Box>
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={8}>
+              <Typography variant="h4" gutterBottom fontWeight="bold">
+                Job Management Dashboard
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9, mb: 2 }}>
+                Create, manage, and track job postings for{" "}
+                {company?.name || "your company"}
+              </Typography>
+              <Box display="flex" gap={4}>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    {jobs.length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Total Jobs
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    {jobs.filter((job) => job.isActive).length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Active
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    {jobs.filter((job) => job.isFeatured).length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Featured
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    {new Set(jobs.map((job) => job.department)).size}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Departments
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4} textAlign="right">
+              <Stack spacing={2}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpenDialog()}
+                  size="large"
+                  sx={{
+                    backgroundColor: "white",
+                    color: "primary.main",
+                    "&:hover": { backgroundColor: "#f5f5f5" },
+                  }}
+                >
+                  Create New Job
+                </Button>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Last updated: {jobs.length > 0 ? "Today" : "No jobs yet"}
+                </Typography>
+              </Stack>
+            </Grid>
+          </Grid>
+        </Paper>
 
         {/* Filters */}
-        <Paper elevation={1} sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            <FilterIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-            Search & Filter
-          </Typography>
-          <Grid container spacing={2} alignItems="center">
+        <Paper
+          elevation={2}
+          sx={{
+            p: 3,
+            mb: 4,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            background: "linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+            <FilterIcon sx={{ mr: 1, color: "primary.main" }} />
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 600, color: "text.primary" }}
+            >
+              Search & Filter
+            </Typography>
+            <Chip
+              label={`${filteredJobs.length} results`}
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{ ml: 2 }}
+            />
+          </Box>
+
+          <Grid container spacing={3} alignItems="stretch">
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                placeholder="Search jobs..."
+                placeholder="Search by title, department, or location..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                variant="outlined"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "white",
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                    },
+                  },
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon />
+                      <SearchIcon color="action" />
                     </InputAdornment>
                   ),
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth>
+
+            <Grid item xs={12} md={2.5}>
+              <FormControl
+                fullWidth
+                sx={{
+                  minWidth: 140,
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "white",
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                    },
+                  },
+                }}
+              >
                 <InputLabel>Department</InputLabel>
                 <Select
                   value={filterDepartment}
@@ -376,8 +559,20 @@ const JobManager = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth>
+
+            <Grid item xs={12} md={2.5}>
+              <FormControl
+                fullWidth
+                sx={{
+                  minWidth: 120,
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "white",
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                    },
+                  },
+                }}
+              >
                 <InputLabel>Job Type</InputLabel>
                 <Select
                   value={filterType}
@@ -393,8 +588,20 @@ const JobManager = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth>
+
+            <Grid item xs={12} md={2.5}>
+              <FormControl
+                fullWidth
+                sx={{
+                  minWidth: 100,
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "white",
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                    },
+                  },
+                }}
+              >
                 <InputLabel>Status</InputLabel>
                 <Select
                   value={filterActive}
@@ -407,159 +614,269 @@ const JobManager = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
-              <Typography variant="body2" color="text.secondary">
-                Showing {filteredJobs.length} of {jobs.length} jobs
-              </Typography>
+
+            <Grid item xs={12} md={0.5}>
+              <Box
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterDepartment("");
+                    setFilterType("");
+                    setFilterActive("all");
+                  }}
+                  sx={{
+                    minWidth: "auto",
+                    px: 1,
+                    py: 1.5,
+                    borderColor: "divider",
+                    color: "text.secondary",
+                    "&:hover": {
+                      borderColor: "primary.main",
+                      color: "primary.main",
+                    },
+                  }}
+                >
+                  Clear
+                </Button>
+              </Box>
             </Grid>
           </Grid>
+
+          {/* Quick Filter Chips */}
+          {(searchTerm ||
+            filterDepartment ||
+            filterType ||
+            filterActive !== "all") && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Active Filters:
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {searchTerm && (
+                  <Chip
+                    label={`Search: "${searchTerm}"`}
+                    onDelete={() => setSearchTerm("")}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+                {filterDepartment && (
+                  <Chip
+                    label={`Department: ${filterDepartment}`}
+                    onDelete={() => setFilterDepartment("")}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+                {filterType && (
+                  <Chip
+                    label={`Type: ${filterType}`}
+                    onDelete={() => setFilterType("")}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+                {filterActive !== "all" && (
+                  <Chip
+                    label={`Status: ${filterActive}`}
+                    onDelete={() => setFilterActive("all")}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+              </Stack>
+            </Box>
+          )}
         </Paper>
 
-        {/* Jobs Grid */}
+        {/* Enhanced Jobs Grid */}
         {loading ? (
-          <Box textAlign="center" py={4}>
-            <Typography>Loading jobs...</Typography>
+          <Box textAlign="center" py={8}>
+            <CircularProgress size={60} />
+            <Typography variant="h6" sx={{ mt: 2 }}>
+              Loading jobs...
+            </Typography>
           </Box>
         ) : filteredJobs.length === 0 ? (
-          <Paper elevation={1} sx={{ p: 6, textAlign: "center" }}>
-            <WorkIcon sx={{ fontSize: 64, color: "grey.400", mb: 2 }} />
-            <Typography variant="h5" gutterBottom>
+          <Paper
+            elevation={3}
+            sx={{ p: 8, textAlign: "center", backgroundColor: "#fafafa" }}
+          >
+            <WorkIcon sx={{ fontSize: 80, color: "grey.400", mb: 3 }} />
+            <Typography variant="h4" gutterBottom color="text.secondary">
               {jobs.length === 0
-                ? "No jobs created yet"
-                : "No jobs match your filters"}
+                ? "No Jobs Created Yet"
+                : "No Jobs Match Your Filters"}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ mb: 4, maxWidth: 500, mx: "auto" }}
+            >
               {jobs.length === 0
-                ? "Start by creating your first job posting to attract talented candidates."
-                : "Try adjusting your search criteria or filters."}
+                ? "Start building your team by creating your first job posting. Attract talented candidates and grow your company."
+                : "Try adjusting your search criteria or clearing some filters to see more results."}
             </Typography>
-            {jobs.length === 0 && (
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => handleOpenDialog()}
-              >
-                Create Your First Job
-              </Button>
-            )}
+            <Stack direction="row" spacing={2} justifyContent="center">
+              {jobs.length === 0 ? (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpenDialog()}
+                  size="large"
+                >
+                  Create Your First Job
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setFilterDepartment("");
+                      setFilterType("");
+                      setFilterActive("all");
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => handleOpenDialog()}
+                  >
+                    Create New Job
+                  </Button>
+                </>
+              )}
+            </Stack>
           </Paper>
         ) : (
           <Grid container spacing={3}>
             {filteredJobs.map((job) => (
               <Grid item xs={12} md={6} lg={4} key={job.id}>
                 <Card
-                  elevation={2}
+                  elevation={job.isFeatured ? 4 : 2}
                   sx={{
                     height: "100%",
                     display: "flex",
                     flexDirection: "column",
                     border: job.isFeatured ? "2px solid" : "1px solid",
                     borderColor: job.isFeatured ? "warning.main" : "grey.200",
+                    position: "relative",
+                    transition: "all 0.3s ease",
+                    "&:hover": {
+                      transform: "translateY(-4px)",
+                      boxShadow: 4,
+                    },
                   }}
                 >
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box
+                  {job.isFeatured && (
+                    <Chip
+                      label="FEATURED"
+                      color="warning"
+                      size="small"
                       sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        mb: 2,
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        zIndex: 1,
+                        fontWeight: "bold",
                       }}
-                    >
+                    />
+                  )}
+                  <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                    <Box sx={{ mb: 2 }}>
                       <Typography
                         variant="h6"
-                        fontWeight="bold"
-                        sx={{ flexGrow: 1 }}
+                        component="h3"
+                        sx={{ fontWeight: "bold", mb: 1 }}
                       >
                         {job.title}
                       </Typography>
-                      <Box>
-                        {job.isFeatured && (
-                          <Tooltip title="Featured Job">
-                            <StarIcon color="warning" sx={{ ml: 1 }} />
-                          </Tooltip>
-                        )}
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        flexWrap="wrap"
+                        sx={{ mb: 2 }}
+                      >
                         <Chip
+                          label={job.department}
                           size="small"
-                          label={job.isActive ? "Active" : "Inactive"}
-                          color={job.isActive ? "success" : "default"}
-                          sx={{ ml: 1 }}
+                          variant="outlined"
                         />
-                      </Box>
+                        <Chip
+                          label={job.type}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                        {!job.isActive && (
+                          <Chip label="INACTIVE" size="small" color="error" />
+                        )}
+                      </Stack>
                     </Box>
 
                     <Stack spacing={1} sx={{ mb: 2 }}>
-                      {job.department && (
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <WorkIcon fontSize="small" color="action" />
-                          <Typography variant="body2">
-                            {job.department}
-                          </Typography>
-                        </Box>
-                      )}
-                      {job.location && (
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <LocationIcon fontSize="small" color="action" />
-                          <Typography variant="body2">
-                            {job.location}{" "}
-                            {job.locationType && `(${job.locationType})`}
-                          </Typography>
-                        </Box>
-                      )}
-                      {job.type && (
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <ScheduleIcon fontSize="small" color="action" />
-                          <Typography variant="body2">{job.type}</Typography>
-                        </Box>
-                      )}
-                      {(job.salary || (job.salaryMin && job.salaryMax)) && (
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <SalaryIcon fontSize="small" color="action" />
-                          <Typography variant="body2">
-                            {job.salary ||
-                              `${job.salaryMin?.toLocaleString()} - ${job.salaryMax?.toLocaleString()} ${
-                                job.currency
-                              }`}
-                          </Typography>
-                        </Box>
-                      )}
-                      {job.deadline && (
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <DateIcon fontSize="small" color="action" />
-                          <Typography variant="body2">
-                            Deadline:{" "}
-                            {dayjs(job.deadline).format("MMM DD, YYYY")}
+                      <Box display="flex" alignItems="center">
+                        <LocationIcon
+                          sx={{ fontSize: 16, mr: 1, color: "text.secondary" }}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          {job.location} • {job.locationType}
+                        </Typography>
+                      </Box>
+                      <Box display="flex" alignItems="center">
+                        <ScheduleIcon
+                          sx={{ fontSize: 16, mr: 1, color: "text.secondary" }}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          {job.experienceLevel} Level
+                        </Typography>
+                      </Box>
+                      {job.salary && (
+                        <Box display="flex" alignItems="center">
+                          <SalaryIcon
+                            sx={{
+                              fontSize: 16,
+                              mr: 1,
+                              color: "text.secondary",
+                            }}
+                          />
+                          <Typography variant="body2" color="text.secondary">
+                            {job.salary}
                           </Typography>
                         </Box>
                       )}
                     </Stack>
 
-                    {job.description && (
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                        }}
-                      >
-                        {job.description}
-                      </Typography>
-                    )}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {job.description || "No description provided"}
+                    </Typography>
                   </CardContent>
-
                   <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
                     <Box>
                       <Tooltip title={job.isActive ? "Deactivate" : "Activate"}>

@@ -1,0 +1,66 @@
+require("dotenv").config();
+
+const express = require("express");
+const { ApolloServer } = require("apollo-server-express");
+const cors = require("cors");
+const typeDefs = require("./graphql/typeDefs");
+const resolvers = require("./graphql/resolvers");
+const { handleEvent } = require("./routes/eventHandler");
+
+const app = express();
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      process.env.FRONTEND_URL,
+    ],
+    credentials: true,
+  })
+);
+
+// Increase payload size limits for file uploads
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+// REST API endpoint for frontend compatibility
+app.post("/api/event", handleEvent);
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: ({ req }) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    const userId = req.headers["x-user-id"];
+
+    console.log("Auth context:", {
+      hasToken: !!token,
+      userId: userId,
+      headers: req.headers,
+    });
+
+    return {
+      userId: userId || null,
+      token: token || null,
+    };
+  },
+});
+
+async function startServer() {
+  await server.start();
+  server.applyMiddleware({ app });
+
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(
+        `Server running at http://localhost:${PORT}${server.graphqlPath}`
+      );
+    });
+  }
+}
+
+startServer();
+
+module.exports = app;

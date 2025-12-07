@@ -42,13 +42,122 @@ import {
   Star as StarIcon,
   LocalHospital as BenefitsIcon,
   Group as TeamIcon,
+  Save as SaveIcon,
 } from "@mui/icons-material";
 
-const SectionBuilder = () => {
-  const { company, updateSections } = useCompanyStore();
+const SectionBuilder = ({ slug }) => {
+  const { company, updateSections, loading } = useCompanyStore();
   const [newSectionType, setNewSectionType] = useState("");
 
-  const sections = company?.sections || [];
+  console.log("SectionBuilder: Company state:", company);
+  console.log("SectionBuilder: Loading state:", loading);
+
+  // Convert sections object to array if needed
+  const sectionsData = company?.sections || {};
+  console.log("Company sections data:", sectionsData);
+
+  // Handle both object and array formats
+  const sections = Array.isArray(sectionsData)
+    ? sectionsData
+    : Object.values(sectionsData).map((section) => ({
+        id: section.id || `section-${section.type}`,
+        ...section,
+      }));
+
+  console.log("Processed sections array:", sections);
+
+  // Show loading or error state if no company
+  if (loading) {
+    return (
+      <Box sx={{ p: 4, textAlign: "center" }}>
+        <Typography>Loading company data...</Typography>
+      </Box>
+    );
+  }
+
+  if (!company) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            No company data loaded
+          </Typography>
+          <Typography variant="body2">
+            The company "{slug}" doesn't exist yet. Let's create it for you.
+          </Typography>
+        </Alert>
+        <Stack spacing={2} direction="row">
+          <Button
+            variant="outlined"
+            onClick={async () => {
+              try {
+                console.log("Testing connection...");
+                const API_URL =
+                  import.meta.env.VITE_API_URL || "http://localhost:5000";
+                const response = await fetch(`${API_URL}/api/event`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    step: "TEST_CONNECTION",
+                    payload: {},
+                  }),
+                });
+                const result = await response.json();
+                console.log("Connection test result:", result);
+                alert(
+                  `Connection test: ${
+                    result.success ? "SUCCESS" : "FAILED"
+                  }\n${JSON.stringify(result, null, 2)}`
+                );
+              } catch (error) {
+                console.error("Connection test error:", error);
+                alert(`Connection error: ${error.message}`);
+              }
+            }}
+          >
+            Test Connection
+          </Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              try {
+                console.log("Creating demo company...");
+                const API_URL =
+                  import.meta.env.VITE_API_URL || "http://localhost:5000";
+                const response = await fetch(`${API_URL}/api/event`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    step: "CREATE_DEMO_COMPANY",
+                    payload: {},
+                  }),
+                });
+                const result = await response.json();
+                console.log("Demo company creation result:", result);
+
+                if (result.success) {
+                  alert("Demo company created successfully! Reloading page...");
+                  window.location.reload();
+                } else {
+                  console.error("Failed to create demo company:", result);
+                  alert(
+                    `Error: ${result.error}\nDetails: ${
+                      result.details || "No additional details"
+                    }`
+                  );
+                }
+              } catch (error) {
+                console.error("Error creating demo company:", error);
+                alert(`Network error: ${error.message}`);
+              }
+            }}
+          >
+            Create Demo Company
+          </Button>
+        </Stack>
+      </Box>
+    );
+  }
 
   const sectionTypes = [
     {
@@ -109,39 +218,104 @@ const SectionBuilder = () => {
   ];
 
   const handleDragEnd = (result) => {
+    console.log("Drag end result:", result);
     if (!result.destination) return;
 
     const items = Array.from(sections);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    updateSections(items);
+    console.log("Reordered sections:", items);
+
+    // Convert back to object format
+    const sectionsObject = {};
+    items.forEach((section, index) => {
+      sectionsObject[section.type + (index > 0 ? `_${index}` : "")] = {
+        ...section,
+        order: index + 1,
+      };
+    });
+
+    updateSections(sectionsObject);
   };
 
   const addSection = () => {
-    if (!newSectionType) return;
+    console.log("Adding section of type:", newSectionType);
+    if (!newSectionType) {
+      console.log("No section type selected");
+      return;
+    }
 
     const sectionTemplate = sectionTypes.find(
       (type) => type.value === newSectionType
     );
+    console.log("Section template found:", sectionTemplate);
+
     const newSection = {
       id: `section-${Date.now()}`,
       type: newSectionType,
       title: sectionTemplate.defaultContent.title,
       content: sectionTemplate.defaultContent,
       visible: true,
+      order: sections.length + 1,
     };
 
-    updateSections([...sections, newSection]);
+    console.log("New section created:", newSection);
+    console.log("Current sections:", sections);
+
+    const updatedSections = [...sections, newSection];
+    console.log("Updated sections array:", updatedSections);
+
+    // Create a simpler object format for sections
+    const sectionsObject = {};
+    updatedSections.forEach((section) => {
+      // Use a unique key for each section type
+      let key = section.type;
+      let counter = 1;
+      while (sectionsObject[key]) {
+        key = `${section.type}_${counter}`;
+        counter++;
+      }
+      sectionsObject[key] = {
+        type: section.type,
+        title: section.title,
+        content: section.content,
+        visible: section.visible,
+        order: section.order || updatedSections.indexOf(section) + 1,
+      };
+    });
+
+    console.log("Sections object to save:", sectionsObject);
+    updateSections(sectionsObject);
     setNewSectionType("");
   };
 
   const removeSection = (index) => {
+    console.log("Removing section at index:", index);
     const newSections = sections.filter((_, i) => i !== index);
-    updateSections(newSections);
+    console.log("Sections after removal:", newSections);
+
+    // Convert back to object format
+    const sectionsObject = {};
+    newSections.forEach((section, idx) => {
+      sectionsObject[section.type + (idx > 0 ? `_${idx}` : "")] = {
+        ...section,
+        order: idx + 1,
+      };
+    });
+
+    updateSections(sectionsObject);
   };
 
   const updateSection = (index, field, value) => {
+    console.log(
+      "Updating section at index:",
+      index,
+      "field:",
+      field,
+      "value:",
+      value
+    );
     const newSections = [...sections];
     if (field.includes(".")) {
       const [parent, child] = field.split(".");
@@ -158,16 +332,41 @@ const SectionBuilder = () => {
         [field]: value,
       };
     }
-    updateSections(newSections);
+
+    console.log("Updated sections:", newSections);
+
+    // Convert back to object format
+    const sectionsObject = {};
+    newSections.forEach((section, idx) => {
+      sectionsObject[section.type + (idx > 0 ? `_${idx}` : "")] = {
+        ...section,
+        order: idx + 1,
+      };
+    });
+
+    updateSections(sectionsObject);
   };
 
   const toggleSectionVisibility = (index) => {
+    console.log("Toggling visibility for section at index:", index);
     const newSections = [...sections];
     newSections[index] = {
       ...newSections[index],
       visible: !newSections[index].visible,
     };
-    updateSections(newSections);
+
+    console.log("Sections after visibility toggle:", newSections);
+
+    // Convert back to object format
+    const sectionsObject = {};
+    newSections.forEach((section, idx) => {
+      sectionsObject[section.type + (idx > 0 ? `_${idx}` : "")] = {
+        ...section,
+        order: idx + 1,
+      };
+    });
+
+    updateSections(sectionsObject);
   };
 
   const getSectionTypeInfo = (type) => {
@@ -176,6 +375,29 @@ const SectionBuilder = () => {
 
   return (
     <Box>
+      {/* Save Reminder */}
+      <Alert
+        severity="info"
+        sx={{ mb: 2 }}
+        action={
+          <Button
+            size="small"
+            startIcon={<SaveIcon />}
+            onClick={() => {
+              console.log(
+                "Save button clicked - you'll need to implement handleSave from parent"
+              );
+              // This should be passed as prop from CompanyEditor
+            }}
+          >
+            Save Changes
+          </Button>
+        }
+      >
+        Remember to save your changes! Sections are updated locally until you
+        click Save.
+      </Alert>
+
       {/* Add Section Panel */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <Typography

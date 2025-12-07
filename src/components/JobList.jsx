@@ -12,27 +12,43 @@ import {
   InputAdornment,
   MenuItem,
   CircularProgress,
+  Stack,
+  Skeleton,
 } from "@mui/material";
-import { Search, LocationOn, Schedule, Business } from "@mui/icons-material";
+import {
+  Search,
+  LocationOn,
+  Schedule,
+  Business,
+  Work,
+} from "@mui/icons-material";
 
-const JobList = ({ jobs, filters, onFiltersChange, loading }) => {
+const JobList = ({
+  jobs = [],
+  filters,
+  onFiltersChange,
+  loading,
+  branding,
+  showStatus = false,
+}) => {
   const [searchTerm, setSearchTerm] = useState(filters?.search || "");
   const [selectedLocation, setSelectedLocation] = useState(
     filters?.location || ""
   );
   const [selectedType, setSelectedType] = useState(filters?.type || "");
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      onFiltersChange?.({
-        search: searchTerm,
-        location: selectedLocation,
-        type: selectedType,
-      });
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchTerm, selectedLocation, selectedType, onFiltersChange]);
+    // Temporarily disable automatic filter calls to stop recursion
+    // Only call onFiltersChange manually when user actually changes something
+    return;
+  }, [
+    searchTerm,
+    selectedLocation,
+    selectedType,
+    onFiltersChange,
+    isInitialized,
+  ]);
 
   const locations = [
     ...new Set(jobs.map((job) => job.location).filter(Boolean)),
@@ -41,129 +57,266 @@ const JobList = ({ jobs, filters, onFiltersChange, loading }) => {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <Stack spacing={3}>
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="bg-gray-200 h-32 rounded-lg"></div>
-          </div>
+          <Paper key={i} sx={{ p: 3 }}>
+            <Skeleton variant="text" width="60%" height={32} />
+            <Skeleton variant="text" width="40%" height={20} />
+            <Skeleton variant="text" width="80%" height={60} />
+          </Paper>
         ))}
-      </div>
+      </Stack>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <Stack spacing={4}>
       {/* Search and Filters */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Paper sx={{ p: 3 }}>
+        <Grid container spacing={3}>
           {/* Search */}
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
               placeholder="Search jobs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search />
+                  </InputAdornment>
+                ),
+              }}
             />
-          </div>
+          </Grid>
 
           {/* Location Filter */}
-          <div className="relative">
-            <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <select
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              select
+              label="Location"
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LocationOn />
+                  </InputAdornment>
+                ),
+              }}
             >
-              <option value="">All Locations</option>
+              <MenuItem value="">All Locations</MenuItem>
               {locations.map((location) => (
-                <option key={location} value={location}>
+                <MenuItem key={location} value={location}>
                   {location}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </div>
+            </TextField>
+          </Grid>
 
           {/* Job Type Filter */}
-          <div className="relative">
-            <ClockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <select
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              select
+              label="Job Type"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Schedule />
+                  </InputAdornment>
+                ),
+              }}
             >
-              <option value="">All Types</option>
+              <MenuItem value="">All Types</MenuItem>
               {jobTypes.map((type) => (
-                <option key={type} value={type}>
+                <MenuItem key={type} value={type}>
                   {type}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </div>
-        </div>
-      </div>
+            </TextField>
+          </Grid>
+        </Grid>
+      </Paper>
 
       {/* Job Results */}
-      <div className="space-y-4">
+      <Stack spacing={3}>
         {jobs.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow-sm border">
-            <div className="text-gray-400 text-lg mb-2">No jobs found</div>
-            <div className="text-gray-500 text-sm">
+          <Paper sx={{ p: 6, textAlign: "center" }}>
+            <Work sx={{ fontSize: 48, color: "grey.400", mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No jobs found
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
               {searchTerm || selectedLocation || selectedType
                 ? "Try adjusting your filters"
                 : "No job openings at this time"}
-            </div>
-          </div>
+            </Typography>
+          </Paper>
         ) : (
-          jobs.map((job) => <JobCard key={job.id} job={job} />)
+          jobs.map((job) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              branding={branding}
+              showStatus={showStatus}
+            />
+          ))
         )}
-      </div>
+      </Stack>
 
       {/* Results count */}
       {jobs.length > 0 && (
-        <div className="text-sm text-gray-500 text-center">
+        <Typography variant="body2" color="text.secondary" textAlign="center">
           Showing {jobs.length} job{jobs.length !== 1 ? "s" : ""}
-        </div>
+        </Typography>
       )}
-    </div>
+    </Stack>
   );
 };
 
-const JobCard = ({ job }) => {
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {job.title}
-          </h3>
-          <div className="flex items-center gap-4 text-sm text-gray-600">
-            {job.location && (
-              <div className="flex items-center gap-1">
-                <MapPinIcon className="w-4 h-4" />
-                {job.location}
-              </div>
-            )}
-            {job.type && (
-              <div className="flex items-center gap-1">
-                <ClockIcon className="w-4 h-4" />
-                {job.type}
-              </div>
-            )}
-          </div>
-        </div>
-        <button className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors">
-          Apply Now
-        </button>
-      </div>
+const JobCard = ({ job, branding = {}, showStatus = false }) => {
+  const primaryColor = branding.primaryColor || "#1976d2";
 
-      {job.description && (
-        <p className="text-gray-700 text-sm leading-relaxed line-clamp-3">
-          {job.description}
-        </p>
-      )}
-    </div>
+  return (
+    <Card
+      sx={{
+        "&:hover": { boxShadow: 4 },
+        transition: "all 0.2s",
+        opacity: job.isActive === false ? 0.6 : 1,
+        border: job.isFeatured ? `2px solid ${primaryColor}` : "none",
+      }}
+    >
+      <CardContent sx={{ p: 3 }}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="flex-start"
+          mb={2}
+        >
+          <Box flex={1}>
+            <Box display="flex" alignItems="center" gap={1} mb={1}>
+              <Typography variant="h6" component="h3">
+                {job.title}
+              </Typography>
+              {job.isFeatured && (
+                <Chip
+                  label="Featured"
+                  size="small"
+                  sx={{
+                    backgroundColor: primaryColor,
+                    color: "white",
+                    fontWeight: "bold",
+                  }}
+                />
+              )}
+              {showStatus && (
+                <Chip
+                  label={job.isActive ? "Published" : "Draft"}
+                  size="small"
+                  color={job.isActive ? "success" : "default"}
+                  variant={job.isActive ? "filled" : "outlined"}
+                />
+              )}
+            </Box>
+            <Stack direction="row" spacing={2} alignItems="center" mb={1}>
+              {job.department && (
+                <Chip
+                  icon={<Business />}
+                  label={job.department}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+              {job.location && (
+                <Chip
+                  icon={<LocationOn />}
+                  label={job.location}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+              {job.type && (
+                <Chip
+                  icon={<Schedule />}
+                  label={job.type}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+            </Stack>
+            {job.experienceLevel && (
+              <Typography variant="body2" color="text.secondary">
+                Experience Level: {job.experienceLevel}
+              </Typography>
+            )}
+            {(job.salaryMin || job.salaryMax || job.salary) && (
+              <Typography variant="body2" color="text.secondary">
+                Salary:{" "}
+                {job.salary ||
+                  `${job.salaryMin || "N/A"} - ${job.salaryMax || "N/A"}`}{" "}
+                {job.currency || "USD"}
+              </Typography>
+            )}
+          </Box>
+          <Button
+            variant="contained"
+            sx={{
+              ml: 2,
+              backgroundColor: primaryColor,
+              "&:hover": {
+                backgroundColor: primaryColor,
+                filter: "brightness(0.9)",
+              },
+            }}
+            href={job.applicationUrl || "#"}
+            target={job.applicationUrl ? "_blank" : "_self"}
+          >
+            Apply Now
+          </Button>
+        </Box>
+
+        {job.description && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              display: "-webkit-box",
+              "-webkit-line-clamp": 3,
+              "-webkit-box-orient": "vertical",
+              overflow: "hidden",
+              lineHeight: 1.5,
+            }}
+          >
+            {job.description}
+          </Typography>
+        )}
+
+        {job.skills && job.skills.length > 0 && (
+          <Box mt={2}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Skills:
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              {job.skills.slice(0, 5).map((skill, index) => (
+                <Chip key={index} label={skill} size="small" />
+              ))}
+              {job.skills.length > 5 && (
+                <Chip
+                  label={`+${job.skills.length - 5} more`}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+            </Stack>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

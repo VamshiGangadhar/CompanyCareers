@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 // API configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -19,18 +19,51 @@ const apiClient = axios.create({
 
 // Simple API call with step/payload
 const callAPI = async (step, payload = {}) => {
+  console.log("APIClient: Making call with step:", step, "payload:", payload);
   try {
-    // Get Supabase session token for protected routes
-    const { data: session } = await supabase.auth.getSession();
-    const token = session?.session?.access_token;
+    // Get token from localStorage (for mock auth) or Supabase session
+    let token = localStorage.getItem("token");
 
-    const response = await apiClient.post("/api/event", {
-      step,
-      payload: { ...payload, ...(token && { token }) },
+    // Try to get Supabase session token as fallback
+    if (!token) {
+      const { data: session } = await supabase.auth.getSession();
+      token = session?.session?.access_token;
+    }
+
+    console.log("APIClient: Using token:", token ? "Present" : "Missing");
+
+    const headers = {
+      "Content-Type": "application/json",
+    };
+
+    // Add Authorization header if token is available
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/event`, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({
+        step,
+        payload: payload,
+      }),
     });
-    return response.data;
+
+    console.log("APIClient: Response status:", response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("APIClient: Error response:", errorData);
+      throw errorData;
+    }
+
+    const data = await response.json();
+    console.log("APIClient: Response received:", data);
+    return data;
   } catch (error) {
-    throw error.response?.data || error;
+    console.error("APIClient: Error occurred:", error);
+    throw error;
   }
 };
 
@@ -79,10 +112,21 @@ export const authAPI = {
 
 // Company methods
 export const companyAPI = {
+  create: (data) => callAPI("CREATE_COMPANY", data),
   getBySlug: (slug) => callAPI("GET_COMPANY", { slug }),
   update: (slug, data) => callAPI("UPDATE_COMPANY", { slug, ...data }),
   getJobs: (slug, params) =>
     callAPI("GET_JOBS", { companySlug: slug, ...params }),
+  uploadLogo: (slug, params) => {
+    const payload = { companySlug: slug, ...params };
+    return callAPI("UPLOAD_LOGO", payload);
+  },
+  uploadBanner: (slug, params) => {
+    const payload = { companySlug: slug, ...params };
+    return callAPI("UPLOAD_BANNER", payload);
+  },
+  deleteLogo: (slug) => callAPI("DELETE_LOGO", { companySlug: slug }),
+  deleteBanner: (slug) => callAPI("DELETE_BANNER", { companySlug: slug }),
 };
 
 // Jobs methods

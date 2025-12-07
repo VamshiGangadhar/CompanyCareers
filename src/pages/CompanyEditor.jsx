@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import useCompanyStore from "../context/companyStore";
 import ThemeEditor from "../components/ThemeEditor";
 import SectionBuilder from "../components/SectionBuilder";
 import JobManager from "../components/JobManager";
+import TeamManager from "../components/TeamManager";
 import {
   Box,
   AppBar,
@@ -37,12 +38,15 @@ import {
   Save,
   AccountCircle,
   Logout,
+  Group,
+  Business,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import toast from "react-hot-toast";
 
 const CompanyEditor = () => {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { company, fetchCompany, updateCompany, loading } = useCompanyStore();
   const [activeTab, setActiveTab] = useState("design");
@@ -50,10 +54,17 @@ const CompanyEditor = () => {
   const [anchorEl, setAnchorEl] = useState(null);
 
   useEffect(() => {
+    console.log("CompanyEditor: slug =", slug);
     if (slug) {
-      fetchCompany(slug).catch(() => {
-        toast.error("Failed to load company data");
-      });
+      console.log("CompanyEditor: Fetching company with slug:", slug);
+      fetchCompany(slug)
+        .then((data) => {
+          console.log("CompanyEditor: Company fetched successfully:", data);
+        })
+        .catch((error) => {
+          console.error("CompanyEditor: Failed to fetch company:", error);
+          toast.error("Failed to load company data");
+        });
     }
   }, [slug, fetchCompany]);
 
@@ -95,6 +106,12 @@ const CompanyEditor = () => {
       icon: <Article />,
       color: "secondary",
     },
+    {
+      id: "team",
+      label: "Team Management",
+      icon: <Group />,
+      color: "info",
+    },
     { id: "jobs", label: "Job Management", icon: <Work />, color: "success" },
   ];
 
@@ -119,12 +136,32 @@ const CompanyEditor = () => {
       {/* App Bar */}
       <AppBar
         position="fixed"
-        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        elevation={0}
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          boxShadow: "0 8px 32px rgba(102, 126, 234, 0.3)",
+        }}
       >
         <Toolbar>
           <Box
-            sx={{ display: "flex", alignItems: "center", flexGrow: 1, gap: 2 }}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              cursor: "pointer",
+              "&:hover": {
+                opacity: 0.8,
+              },
+            }}
+            onClick={() => navigate("/")}
           >
+            <Business sx={{ mr: 2 }} />
+            <Typography variant="h6" component="div">
+              Company Career
+            </Typography>
+          </Box>
+          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Typography variant="h6" component="h1" fontWeight="bold">
               {company?.name || "Company"} Editor
             </Typography>
@@ -301,7 +338,27 @@ const CompanyEditor = () => {
                   Build and organize your careers page content sections
                 </Typography>
               </Box>
-              <SectionBuilder />
+              <SectionBuilder slug={slug} />
+            </Box>
+          )}
+
+          {activeTab === "team" && (
+            <Box>
+              <Box sx={{ mb: 4 }}>
+                <Typography
+                  variant="h4"
+                  component="h2"
+                  gutterBottom
+                  fontWeight="bold"
+                >
+                  Team Management
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Add, edit, and organize your team members with drag-and-drop
+                  functionality
+                </Typography>
+              </Box>
+              <TeamManager />
             </Box>
           )}
 
