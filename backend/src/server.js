@@ -14,15 +14,40 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:3001",
+      "https://company-careers.vercel.app",
       process.env.FRONTEND_URL,
     ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    optionsSuccessStatus: 200
   })
 );
 
 // Increase payload size limits for file uploads
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+// Handle preflight OPTIONS requests explicitly
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin);
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.sendStatus(200);
+});
+
+// Health check route
+app.get("/", (req, res) => {
+  res.json({
+    message: "CompanyCareers Backend API is running!",
+    status: "healthy",
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "healthy", timestamp: new Date().toISOString() });
+});
 
 // REST API endpoint for frontend compatibility
 app.post("/api/event", handleEvent);
