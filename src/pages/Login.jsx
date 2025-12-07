@@ -60,39 +60,31 @@ const Login = () => {
     e.preventDefault();
     setSubmitAttempted(true);
 
-    console.log("🔍 [LOGIN] Form submission started with data:", formData);
-
     // Validate all fields
     const newErrors = {};
     Object.keys(formData).forEach((key) => {
       const error = validateField(key, formData[key]);
       if (error) {
         newErrors[key] = error;
-        console.log(`❌ [LOGIN] Validation error for ${key}:`, error);
       }
     });
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
-      console.log("❌ [LOGIN] Validation failed:", newErrors);
       toast.error("Please fix the errors before submitting");
       return;
     }
 
-    console.log("✅ [LOGIN] Validation passed, attempting login...");
     try {
       const result = await login(formData);
-      console.log("📝 [LOGIN] Login result:", result);
 
       if (result.success) {
         toast.success("Welcome back!");
         navigate(from, { replace: true });
       } else {
-        console.error("❌ [LOGIN] Login failed:", result.error);
         toast.error(result.error || "Login failed. Please try again.");
       }
     } catch (error) {
-      console.error("❌ [LOGIN] Login error:", error);
       toast.error("An error occurred during login. Please try again.");
     }
   };

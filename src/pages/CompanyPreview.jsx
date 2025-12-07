@@ -23,6 +23,9 @@ import {
   Launch,
   Edit,
   Business,
+  KeyboardArrowLeft,
+  KeyboardArrowRight,
+  FiberManualRecord,
 } from "@mui/icons-material";
 
 const CompanyPreview = () => {
@@ -30,6 +33,23 @@ const CompanyPreview = () => {
   const navigate = useNavigate();
   const { company, jobs, fetchCompany, fetchJobs, loading } = useCompanyStore();
   const [sections, setSections] = useState({});
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  // Get banners array - support both single banner and multiple banners
+  const getBanners = () => {
+    if (!company?.branding) return [];
+    if (company.branding.banners && Array.isArray(company.branding.banners)) {
+      return company.branding.banners;
+    }
+    if (company.branding.banner) {
+      return [company.branding.banner];
+    }
+    return [];
+  };
+
+  const banners = getBanners();
+  const hasBanners = banners.length > 0;
+  const hasMultipleBanners = banners.length > 1;
 
   useEffect(() => {
     if (slug) {
@@ -37,6 +57,53 @@ const CompanyPreview = () => {
       fetchJobs(slug);
     }
   }, [slug, fetchCompany, fetchJobs]);
+
+  // Auto-rotate banners every 5 seconds if multiple banners
+  useEffect(() => {
+    if (hasMultipleBanners) {
+      const interval = setInterval(() => {
+        setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [hasMultipleBanners, banners.length]);
+
+  const nextBanner = () => {
+    setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+  };
+
+  const prevBanner = () => {
+    setCurrentBannerIndex(
+      (prev) => (prev - 1 + banners.length) % banners.length
+    );
+  };
+
+  const goToBanner = (index) => {
+    setCurrentBannerIndex(index);
+  };
+
+  const handlePublish = async () => {
+    try {
+      const { updateCompany } = useCompanyStore.getState();
+      const isCurrentlyPublished = company?.published;
+
+      await updateCompany(slug, {
+        published: !isCurrentlyPublished,
+        publishedAt: !isCurrentlyPublished ? new Date().toISOString() : null,
+      });
+
+      if (!isCurrentlyPublished) {
+        // Publication successful
+        setTimeout(() => {
+          window.open(`/${slug}/careers`, "_blank");
+        }, 1000);
+      } else {
+        // Unpublication successful
+      }
+    } catch (error) {
+      // Error updating publish status
+    }
+  };
 
   useEffect(() => {
     if (company?.sections) {
@@ -101,14 +168,18 @@ const CompanyPreview = () => {
 
     switch (section.type) {
       case "hero":
+        const currentBanner = hasBanners ? banners[currentBannerIndex] : null;
+
         return (
           <Paper
             key={key}
             elevation={0}
             sx={{
               ...commonSx,
-              ...(branding.banner && {
-                backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${branding.banner})`,
+              position: "relative",
+              overflow: "hidden",
+              ...(currentBanner && {
+                backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${currentBanner})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
@@ -116,9 +187,84 @@ const CompanyPreview = () => {
               }),
             }}
           >
+            {/* Banner Carousel Controls */}
+            {hasMultipleBanners && (
+              <>
+                {/* Previous Button */}
+                <IconButton
+                  onClick={prevBanner}
+                  sx={{
+                    position: "absolute",
+                    left: 16,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    color: "white",
+                    "&:hover": {
+                      backgroundColor: "rgba(0,0,0,0.7)",
+                    },
+                    zIndex: 2,
+                  }}
+                >
+                  <KeyboardArrowLeft />
+                </IconButton>
+
+                {/* Next Button */}
+                <IconButton
+                  onClick={nextBanner}
+                  sx={{
+                    position: "absolute",
+                    right: 16,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    color: "white",
+                    "&:hover": {
+                      backgroundColor: "rgba(0,0,0,0.7)",
+                    },
+                    zIndex: 2,
+                  }}
+                >
+                  <KeyboardArrowRight />
+                </IconButton>
+
+                {/* Banner Indicators */}
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: 16,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    display: "flex",
+                    gap: 1,
+                    zIndex: 2,
+                  }}
+                >
+                  {banners.map((_, index) => (
+                    <IconButton
+                      key={index}
+                      onClick={() => goToBanner(index)}
+                      sx={{
+                        p: 0.5,
+                        color:
+                          index === currentBannerIndex
+                            ? "white"
+                            : "rgba(255,255,255,0.5)",
+                        "&:hover": {
+                          color: "white",
+                        },
+                      }}
+                    >
+                      <FiberManualRecord sx={{ fontSize: 12 }} />
+                    </IconButton>
+                  ))}
+                </Box>
+              </>
+            )}
+
             <Container maxWidth={containerMaxWidth}>
-              <Box textAlign="center">
-                {branding.logo && !branding.banner && (
+              <Box textAlign="center" sx={{ position: "relative", zIndex: 1 }}>
+                {branding.logo && !currentBanner && (
                   <Box
                     component="img"
                     src={branding.logo}
@@ -132,17 +278,18 @@ const CompanyPreview = () => {
                   />
                 )}
                 <Typography
-                  variant="h2"
+                  variant="h3"
                   component="h1"
                   gutterBottom
                   sx={{
                     fontFamily: branding.typography?.headingFont || "inherit",
-                    color: branding.banner
+                    color: currentBanner
                       ? "white"
                       : branding.primaryColor || "inherit",
-                    textShadow: branding.banner
+                    textShadow: currentBanner
                       ? "2px 2px 4px rgba(0,0,0,0.5)"
                       : "none",
+                    fontSize: { xs: "2rem", md: "2.5rem" },
                   }}
                 >
                   {section.title}
@@ -154,10 +301,10 @@ const CompanyPreview = () => {
                       mt: 2,
                       maxWidth: "800px",
                       mx: "auto",
-                      color: branding.banner
+                      color: currentBanner
                         ? "rgba(255,255,255,0.9)"
                         : "text.secondary",
-                      textShadow: branding.banner
+                      textShadow: currentBanner
                         ? "1px 1px 2px rgba(0,0,0,0.5)"
                         : "none",
                     }}
@@ -463,46 +610,96 @@ const CompanyPreview = () => {
             </Typography>
           </Box>
           <Box sx={{ flexGrow: 1 }} />
-          <IconButton
-            color="inherit"
-            onClick={() => navigate(`/company/${slug}/edit`)}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBack />
-          </IconButton>
-          <Visibility sx={{ mr: 1 }} />
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            {branding.logo && (
-              <Box
-                component="img"
-                src={branding.logo}
-                alt={company.name}
-                sx={{ height: 32, mr: 2 }}
-              />
-            )}
-            <Typography variant="h6">Preview: {company.name}</Typography>
+            <IconButton
+              color="inherit"
+              onClick={() => navigate(`/company/${slug}/edit`)}
+              sx={{
+                bgcolor: "rgba(255, 255, 255, 0.1)",
+                "&:hover": {
+                  bgcolor: "rgba(255, 255, 255, 0.2)",
+                },
+              }}
+            >
+              <ArrowBack />
+            </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Visibility sx={{ color: "rgba(255, 255, 255, 0.8)" }} />
+              {branding.logo && (
+                <Box
+                  component="img"
+                  src={branding.logo}
+                  alt={company.name}
+                  sx={{ height: 28, borderRadius: 1 }}
+                />
+              )}
+              <Typography variant="h6" fontWeight="600">
+                Preview: {company.name}
+              </Typography>
+            </Box>
+            <Chip
+              label="PREVIEW MODE"
+              color="warning"
+              size="small"
+              variant="filled"
+              sx={{ fontWeight: 600 }}
+            />
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Launch />}
+              onClick={handlePublish}
+              sx={{
+                bgcolor: company?.published ? "warning.main" : "success.main",
+                color: "white",
+                fontWeight: 600,
+                minWidth: 120,
+                "&:hover": {
+                  bgcolor: company?.published ? "warning.dark" : "success.dark",
+                  transform: "translateY(-1px)",
+                },
+              }}
+            >
+              {company?.published ? "Unpublish" : "Publish"}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Launch />}
+              onClick={() => window.open(`/${slug}/careers`, "_blank")}
+              sx={{
+                color: "white",
+                borderColor: "rgba(255, 255, 255, 0.5)",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                fontWeight: 500,
+                minWidth: 110,
+                "&:hover": {
+                  borderColor: "white",
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                },
+              }}
+            >
+              View Live
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Edit />}
+              onClick={() => navigate(`/company/${slug}/edit`)}
+              sx={{
+                bgcolor: "rgba(255, 255, 255, 0.95)",
+                color: "primary.main",
+                fontWeight: 600,
+                minWidth: 100,
+                "&:hover": {
+                  bgcolor: "white",
+                  transform: "translateY(-1px)",
+                },
+              }}
+            >
+              Edit
+            </Button>
           </Box>
-          <Chip
-            label="PREVIEW MODE"
-            color="warning"
-            variant="filled"
-            sx={{ mr: 2 }}
-          />
-          <Button
-            color="inherit"
-            startIcon={<Launch />}
-            onClick={() => window.open(`/${slug}/careers`, "_blank")}
-            sx={{ mr: 1 }}
-          >
-            View Live
-          </Button>
-          <Button
-            color="inherit"
-            startIcon={<Edit />}
-            onClick={() => navigate(`/company/${slug}/edit`)}
-          >
-            Edit
-          </Button>
         </Toolbar>
       </AppBar>
 

@@ -17,6 +17,9 @@ import {
   Alert,
   Fab,
   Grid,
+  Avatar,
+  Divider,
+  IconButton,
 } from "@mui/material";
 import {
   Work,
@@ -26,12 +29,35 @@ import {
   Email,
   Phone,
   Language,
+  LinkedIn,
+  Twitter,
+  GitHub,
+  KeyboardArrowLeft,
+  KeyboardArrowRight,
+  FiberManualRecord,
 } from "@mui/icons-material";
 
 const CareersPage = () => {
   const { slug } = useParams();
   const { company, jobs, fetchCompany, fetchJobs, loading } = useCompanyStore();
   const [jobFilters, setJobFilters] = useState({});
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  // Get banners array - support both single banner and multiple banners
+  const getBanners = () => {
+    if (!company?.branding) return [];
+    if (company.branding.banners && Array.isArray(company.branding.banners)) {
+      return company.branding.banners;
+    }
+    if (company.branding.banner) {
+      return [company.branding.banner];
+    }
+    return [];
+  };
+
+  const banners = getBanners();
+  const hasBanners = banners.length > 0;
+  const hasMultipleBanners = banners.length > 1;
 
   useEffect(() => {
     if (slug) {
@@ -39,6 +65,30 @@ const CareersPage = () => {
       fetchJobs(slug);
     }
   }, [slug, fetchCompany, fetchJobs]);
+
+  // Auto-rotate banners every 5 seconds if multiple banners
+  useEffect(() => {
+    if (hasMultipleBanners) {
+      const interval = setInterval(() => {
+        setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [hasMultipleBanners, banners.length]);
+
+  const nextBanner = () => {
+    setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+  };
+
+  const prevBanner = () => {
+    setCurrentBannerIndex(
+      (prev) => (prev - 1 + banners.length) % banners.length
+    );
+  };
+
+  const goToBanner = (index) => {
+    setCurrentBannerIndex(index);
+  };
 
   const handleFiltersChange = useCallback(
     (newFilters) => {
@@ -128,6 +178,8 @@ const CareersPage = () => {
 
     switch (section.type) {
       case "hero":
+        const currentBanner = hasBanners ? banners[currentBannerIndex] : null;
+
         return (
           <Paper
             key={sectionKey}
@@ -136,9 +188,11 @@ const CareersPage = () => {
               ...sectionStyle,
               p: { xs: 4, md: 8 },
               textAlign: "center",
-              ...(branding.banner
+              position: "relative",
+              overflow: "hidden",
+              ...(currentBanner
                 ? {
-                    backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${branding.banner})`,
+                    backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${currentBanner})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     backgroundRepeat: "no-repeat",
@@ -151,64 +205,143 @@ const CareersPage = () => {
               color: "#ffffff",
             }}
           >
-            {branding.logo && !branding.banner && (
-              <Box
-                component="img"
-                src={branding.logo}
-                alt={company.name}
-                sx={{
-                  height: { xs: 60, md: 80 },
-                  mb: 3,
-                  maxWidth: "100%",
-                  objectFit: "contain",
-                  filter: "brightness(0) invert(1)", // Make logo white on colored background
-                }}
-              />
+            {/* Banner Carousel Controls */}
+            {hasMultipleBanners && (
+              <>
+                {/* Previous Button */}
+                <IconButton
+                  onClick={prevBanner}
+                  sx={{
+                    position: "absolute",
+                    left: 16,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    color: "white",
+                    "&:hover": {
+                      backgroundColor: "rgba(0,0,0,0.7)",
+                    },
+                    zIndex: 2,
+                  }}
+                >
+                  <KeyboardArrowLeft />
+                </IconButton>
+
+                {/* Next Button */}
+                <IconButton
+                  onClick={nextBanner}
+                  sx={{
+                    position: "absolute",
+                    right: 16,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    color: "white",
+                    "&:hover": {
+                      backgroundColor: "rgba(0,0,0,0.7)",
+                    },
+                    zIndex: 2,
+                  }}
+                >
+                  <KeyboardArrowRight />
+                </IconButton>
+
+                {/* Banner Indicators */}
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: 16,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    display: "flex",
+                    gap: 1,
+                    zIndex: 2,
+                  }}
+                >
+                  {banners.map((_, index) => (
+                    <IconButton
+                      key={index}
+                      onClick={() => goToBanner(index)}
+                      sx={{
+                        p: 0.5,
+                        color:
+                          index === currentBannerIndex
+                            ? "white"
+                            : "rgba(255,255,255,0.5)",
+                        "&:hover": {
+                          color: "white",
+                        },
+                      }}
+                    >
+                      <FiberManualRecord sx={{ fontSize: 12 }} />
+                    </IconButton>
+                  ))}
+                </Box>
+              </>
             )}
-            <Typography
-              variant="h1"
-              component="h1"
-              sx={{
-                fontWeight: "bold",
-                mb: 2,
-                fontSize: { xs: "2.5rem", md: "3.5rem" },
-                textShadow: branding.banner
-                  ? "2px 2px 4px rgba(0,0,0,0.7)"
-                  : "none",
-              }}
-            >
-              {section.title || "Join Our Team"}
-            </Typography>
-            {section.content?.subtitle && (
+
+            {/* Content */}
+            <Box sx={{ position: "relative", zIndex: 1 }}>
+              {branding.logo && !currentBanner && (
+                <Box
+                  component="img"
+                  src={branding.logo}
+                  alt={company.name}
+                  sx={{
+                    height: { xs: 60, md: 80 },
+                    mb: 3,
+                    maxWidth: "100%",
+                    objectFit: "contain",
+                    filter: "brightness(0) invert(1)", // Make logo white on colored background
+                  }}
+                />
+              )}
               <Typography
-                variant="h4"
+                variant="h2"
+                component="h1"
                 sx={{
-                  mb: 4,
-                  opacity: 0.9,
-                  textShadow: branding.banner
-                    ? "1px 1px 2px rgba(0,0,0,0.7)"
+                  fontWeight: "bold",
+                  mb: 2,
+                  fontSize: { xs: "2rem", md: "2.5rem" },
+                  textShadow: currentBanner
+                    ? "2px 2px 4px rgba(0,0,0,0.7)"
                     : "none",
                 }}
               >
-                {section.content.subtitle}
+                {section.title || "Join Our Team"}
               </Typography>
-            )}
-            {section.content?.description && (
-              <Typography
-                variant="h6"
-                sx={{
-                  maxWidth: 800,
-                  mx: "auto",
-                  mb: 4,
-                  opacity: 0.8,
-                  textShadow: branding.banner
-                    ? "1px 1px 2px rgba(0,0,0,0.7)"
-                    : "none",
-                }}
-              >
-                {section.content.description}
-              </Typography>
-            )}
+              {section.content?.subtitle && (
+                <Typography
+                  variant="h5"
+                  sx={{
+                    mb: 4,
+                    opacity: 0.9,
+                    fontSize: { xs: "1.2rem", md: "1.5rem" },
+                    textShadow: currentBanner
+                      ? "1px 1px 2px rgba(0,0,0,0.7)"
+                      : "none",
+                  }}
+                >
+                  {section.content.subtitle}
+                </Typography>
+              )}
+              {section.content?.description && (
+                <Typography
+                  variant="h6"
+                  sx={{
+                    maxWidth: 800,
+                    mx: "auto",
+                    mb: 4,
+                    opacity: 0.8,
+                    textShadow: currentBanner
+                      ? "1px 1px 2px rgba(0,0,0,0.7)"
+                      : "none",
+                  }}
+                >
+                  {section.content.description}
+                </Typography>
+              )}
+            </Box>
             <Button
               variant="contained"
               size="large"
@@ -230,16 +363,50 @@ const CareersPage = () => {
 
       case "about":
         return (
-          <Paper key={sectionKey} elevation={2} sx={{ ...sectionStyle, p: 4 }}>
+          <Paper
+            key={sectionKey}
+            elevation={3}
+            sx={{
+              ...sectionStyle,
+              p: 5,
+              background: `linear-gradient(135deg, ${
+                branding.primaryColor
+              }08 0%, ${
+                branding.secondaryColor || branding.primaryColor
+              }05 100%)`,
+              border: `1px solid ${branding.primaryColor}15`,
+              borderRadius: 3,
+              transition: "all 0.3s ease",
+              "&:hover": {
+                transform: "translateY(-4px)",
+                boxShadow: 6,
+              },
+            }}
+          >
             <Typography
-              variant="h3"
-              sx={{ color: branding.primaryColor, mb: 3, fontWeight: "bold" }}
+              variant="h4"
+              sx={{
+                color: branding.primaryColor,
+                fontWeight: "bold",
+                fontSize: { xs: "1.5rem", md: "1.8rem" },
+                mb: 3,
+                textAlign: "center",
+              }}
             >
               {section.title || "About Us"}
             </Typography>
+            <Divider
+              sx={{ mb: 4, borderColor: `${branding.primaryColor}20` }}
+            />
             <Typography
               variant="body1"
-              sx={{ lineHeight: 1.8, fontSize: "1.1rem" }}
+              sx={{
+                lineHeight: 1.8,
+                fontSize: "1.1rem",
+                color: "text.primary",
+                textAlign: "justify",
+                "& p": { mb: 2 },
+              }}
             >
               {section.content?.content ||
                 "Learn more about our company culture and mission."}
@@ -287,17 +454,57 @@ const CareersPage = () => {
 
       case "team":
         return (
-          <Paper key={sectionKey} elevation={2} sx={{ ...sectionStyle, p: 4 }}>
+          <Paper
+            key={sectionKey}
+            elevation={3}
+            sx={{
+              ...sectionStyle,
+              p: 5,
+              background: `linear-gradient(135deg, ${
+                branding.primaryColor
+              }08 0%, ${
+                branding.secondaryColor || branding.primaryColor
+              }05 100%)`,
+              border: `1px solid ${branding.primaryColor}15`,
+              borderRadius: 3,
+              transition: "all 0.3s ease",
+              textAlign: "center",
+              "&:hover": {
+                transform: "translateY(-4px)",
+                boxShadow: 6,
+              },
+            }}
+          >
             <Typography
-              variant="h3"
-              sx={{ color: branding.primaryColor, mb: 3, fontWeight: "bold" }}
+              variant="h4"
+              sx={{
+                color: branding.primaryColor,
+                fontWeight: "bold",
+                fontSize: { xs: "1.5rem", md: "1.8rem" },
+                mb: 3,
+                textAlign: "center",
+              }}
             >
               {section.title || "Meet Our Team"}
             </Typography>
+            <Divider
+              sx={{
+                mb: 4,
+                borderColor: `${branding.primaryColor}20`,
+                mx: "auto",
+                maxWidth: "200px",
+              }}
+            />
             {section.content?.content && (
               <Typography
                 variant="body1"
-                sx={{ lineHeight: 1.8, fontSize: "1.1rem", mb: 4 }}
+                sx={{
+                  lineHeight: 1.8,
+                  fontSize: "1.1rem",
+                  mb: 4,
+                  color: "text.primary",
+                  textAlign: "center",
+                }}
               >
                 {section.content.content}
               </Typography>
@@ -305,103 +512,205 @@ const CareersPage = () => {
             {company.team && company.team.length > 0 ? (
               <Box
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: {
-                    xs: "1fr",
-                    sm: "repeat(2, 1fr)",
-                    md: "repeat(3, 1fr)",
-                    lg: "repeat(4, 1fr)",
-                  },
-                  gap: 3,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: 4,
                   mt: 4,
                 }}
               >
                 {company.team.map((member, index) => (
                   <Card
                     key={index}
-                    sx={{ textAlign: "center", height: "100%" }}
+                    sx={{
+                      textAlign: "center",
+                      width: 280,
+                      maxWidth: "100%",
+                      borderRadius: 3,
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      border: `1px solid ${branding.primaryColor}10`,
+                      background:
+                        "linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)",
+                      "&:hover": {
+                        transform: "translateY(-8px) scale(1.02)",
+                        boxShadow: `0 20px 40px ${branding.primaryColor}20`,
+                        borderColor: branding.primaryColor,
+                      },
+                    }}
                   >
-                    <CardContent sx={{ p: 3 }}>
-                      <Box
-                        sx={{
-                          width: 100,
-                          height: 100,
-                          borderRadius: "50%",
-                          mx: "auto",
-                          mb: 2,
-                          backgroundColor: member.image
-                            ? "transparent"
-                            : "#e0e0e0",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          overflow: "hidden",
-                        }}
-                      >
-                        {member.image ? (
-                          <Box
-                            component="img"
-                            src={member.image}
-                            alt={member.name}
+                    <CardContent
+                      sx={{
+                        p: 3,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Box sx={{ mb: 3 }}>
+                        <Avatar
+                          sx={{
+                            width: 120,
+                            height: 120,
+                            mx: "auto",
+                            mb: 2,
+                            border: `4px solid ${branding.primaryColor}20`,
+                            background: member.image
+                              ? "transparent"
+                              : `linear-gradient(135deg, ${
+                                  branding.primaryColor
+                                }, ${
+                                  branding.secondaryColor ||
+                                  branding.primaryColor
+                                }90)`,
+                            fontSize: "2.5rem",
+                            fontWeight: "bold",
+                            color: "white",
+                            boxShadow: 4,
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              transform: "scale(1.1)",
+                            },
+                          }}
+                          src={member.image}
+                          alt={member.name}
+                        >
+                          {!member.image && member.name.charAt(0)}
+                        </Avatar>
+                        <Typography
+                          variant="h6"
+                          gutterBottom
+                          sx={{
+                            fontWeight: "bold",
+                            color: branding.primaryColor,
+                            fontSize: "1.3rem",
+                          }}
+                        >
+                          {member.name}
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            color: "text.secondary",
+                            fontWeight: 500,
+                            mb: 2,
+                          }}
+                        >
+                          {member.position}
+                        </Typography>
+                        {member.department && (
+                          <Chip
+                            label={member.department}
+                            size="medium"
                             sx={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
+                              background: `linear-gradient(135deg, ${branding.primaryColor}15, ${branding.primaryColor}25)`,
+                              color: branding.primaryColor,
+                              fontWeight: 600,
+                              mb: 2,
+                              border: `1px solid ${branding.primaryColor}30`,
                             }}
                           />
-                        ) : (
-                          <Typography variant="h4" color="text.secondary">
-                            {member.name.charAt(0)}
-                          </Typography>
                         )}
                       </Box>
-                      <Typography variant="h6" gutterBottom>
-                        {member.name}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        gutterBottom
+                      <Box
+                        sx={{
+                          flexGrow: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          textAlign: "center",
+                        }}
                       >
-                        {member.position}
-                      </Typography>
-                      {member.department && (
-                        <Chip
-                          label={member.department}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          sx={{ mb: 1 }}
-                        />
-                      )}
-                      {member.bio && (
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mt: 1, lineHeight: 1.5 }}
-                        >
-                          {member.bio.length > 100
-                            ? `${member.bio.substring(0, 100)}...`
-                            : member.bio}
-                        </Typography>
-                      )}
+                        {member.bio && (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              lineHeight: 1.6,
+                              mb: 2,
+                              fontStyle: "italic",
+                            }}
+                          >
+                            {member.bio.length > 120
+                              ? `${member.bio.substring(0, 120)}...`
+                              : member.bio}
+                          </Typography>
+                        )}
+                        {(member.linkedin ||
+                          member.twitter ||
+                          member.github) && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "center",
+                              gap: 1,
+                              mt: "auto",
+                            }}
+                          >
+                            {member.linkedin && (
+                              <IconButton
+                                size="small"
+                                component="a"
+                                href={member.linkedin}
+                                target="_blank"
+                                sx={{
+                                  color: "#0077B5",
+                                  "&:hover": { transform: "scale(1.2)" },
+                                }}
+                              >
+                                <LinkedIn />
+                              </IconButton>
+                            )}
+                            {member.twitter && (
+                              <IconButton
+                                size="small"
+                                component="a"
+                                href={member.twitter}
+                                target="_blank"
+                                sx={{
+                                  color: "#1DA1F2",
+                                  "&:hover": { transform: "scale(1.2)" },
+                                }}
+                              >
+                                <Twitter />
+                              </IconButton>
+                            )}
+                            {member.github && (
+                              <IconButton
+                                size="small"
+                                component="a"
+                                href={member.github}
+                                target="_blank"
+                                sx={{
+                                  color: "#333",
+                                  "&:hover": { transform: "scale(1.2)" },
+                                }}
+                              >
+                                <GitHub />
+                              </IconButton>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
                     </CardContent>
                   </Card>
                 ))}
               </Box>
             ) : (
-              <Typography
-                variant="body1"
-                sx={{
-                  lineHeight: 1.8,
-                  fontSize: "1.1rem",
-                  fontStyle: "italic",
-                  color: "text.secondary",
-                }}
-              >
-                Team information will be displayed here once team members are
-                added.
-              </Typography>
+              <Box sx={{ textAlign: "center", py: 4 }}>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    lineHeight: 1.8,
+                    fontSize: "1.1rem",
+                    fontStyle: "italic",
+                    color: "text.secondary",
+                  }}
+                >
+                  Team information will be displayed here once team members are
+                  added.
+                </Typography>
+              </Box>
             )}
           </Paper>
         );

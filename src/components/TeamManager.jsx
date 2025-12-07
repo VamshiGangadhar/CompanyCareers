@@ -22,6 +22,15 @@ import {
   Alert,
   Paper,
   Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Tooltip,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import {
   Add,
@@ -36,6 +45,9 @@ import {
   Phone,
   CloudUpload,
   PhotoCamera,
+  ViewList,
+  ViewModule,
+  TableChart,
 } from "@mui/icons-material";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import useCompanyStore from "../context/companyStore";
@@ -47,6 +59,7 @@ const TeamManager = () => {
   const [error, setError] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [viewMode, setViewMode] = useState("table"); // "table" or "cards"
 
   // Get current team members from company data
   const teamMembers = company?.team || [];
@@ -173,6 +186,8 @@ const TeamManager = () => {
         return;
       }
 
+      setError(""); // Clear any previous errors
+
       const updatedTeam = [...teamMembers];
       const memberData = {
         ...formData,
@@ -190,7 +205,7 @@ const TeamManager = () => {
       await updateCompany(company.slug, { team: updatedTeam });
       handleCloseDialog();
     } catch (error) {
-      setError("Failed to save team member");
+      setError(error.message || "Failed to save team member");
     }
   };
 
@@ -244,17 +259,32 @@ const TeamManager = () => {
             <Person /> Team Management
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Add and manage your team members with drag-and-drop ordering
+            Add and manage your team members ({teamMembers.length} members)
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-          sx={{ borderRadius: 2 }}
-        >
-          Add Team Member
-        </Button>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(e, value) => value && setViewMode(value)}
+            size="small"
+          >
+            <ToggleButton value="table">
+              <TableChart fontSize="small" />
+            </ToggleButton>
+            <ToggleButton value="cards">
+              <ViewModule fontSize="small" />
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+            sx={{ borderRadius: 2 }}
+          >
+            Add Team Member
+          </Button>
+        </Stack>
       </Stack>
 
       {error && (
@@ -287,7 +317,204 @@ const TeamManager = () => {
             Add First Team Member
           </Button>
         </Paper>
+      ) : viewMode === "table" ? (
+        // Table View
+        <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: "grey.50" }}>
+                <TableCell sx={{ fontWeight: 600, width: 80 }}>Photo</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Department</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Contact</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Skills</TableCell>
+                <TableCell sx={{ fontWeight: 600, width: 120 }}>
+                  Actions
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {teamMembers
+                .sort((a, b) => (a.order || 0) - (b.order || 0))
+                .map((member, index) => (
+                  <TableRow
+                    key={member.id}
+                    sx={{
+                      "&:hover": { bgcolor: "grey.50" },
+                      borderLeft: "3px solid transparent",
+                      "&:hover": {
+                        borderLeftColor: "primary.main",
+                        bgcolor: "rgba(25, 118, 210, 0.04)",
+                      },
+                    }}
+                  >
+                    <TableCell>
+                      <Avatar src={member.image} sx={{ width: 50, height: 50 }}>
+                        {member.name?.charAt(0)}
+                      </Avatar>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body1" fontWeight={600}>
+                        {member.name}
+                      </Typography>
+                      {member.joinDate && (
+                        <Typography variant="caption" color="text.secondary">
+                          Since {new Date(member.joinDate).toLocaleDateString()}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="body2"
+                        color="primary.main"
+                        fontWeight={500}
+                      >
+                        {member.title}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={member.department}
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {member.location || "-"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Stack spacing={1}>
+                        {member.email && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}
+                          >
+                            <Email fontSize="small" color="action" />
+                            <Typography variant="caption" noWrap>
+                              {member.email}
+                            </Typography>
+                          </Box>
+                        )}
+                        {member.phone && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}
+                          >
+                            <Phone fontSize="small" color="action" />
+                            <Typography variant="caption">
+                              {member.phone}
+                            </Typography>
+                          </Box>
+                        )}
+                        <Stack direction="row" spacing={0.5}>
+                          {member.linkedin && (
+                            <Tooltip title="LinkedIn">
+                              <IconButton
+                                size="small"
+                                href={member.linkedin}
+                                target="_blank"
+                                sx={{ color: "#0077b5" }}
+                              >
+                                <LinkedIn fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {member.twitter && (
+                            <Tooltip title="Twitter">
+                              <IconButton
+                                size="small"
+                                href={member.twitter}
+                                target="_blank"
+                                sx={{ color: "#1da1f2" }}
+                              >
+                                <Twitter fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {member.website && (
+                            <Tooltip title="Website">
+                              <IconButton
+                                size="small"
+                                href={member.website}
+                                target="_blank"
+                                color="primary"
+                              >
+                                <Language fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Stack>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        flexWrap="wrap"
+                        useFlexGap
+                      >
+                        {member.skills
+                          ?.slice(0, 2)
+                          .map((skill, idx) => (
+                            <Chip
+                              key={idx}
+                              label={skill}
+                              size="small"
+                              sx={{ fontSize: "0.7rem", height: 20 }}
+                            />
+                          )) || []}
+                        {member.skills?.length > 2 && (
+                          <Tooltip title={member.skills.slice(2).join(", ")}>
+                            <Chip
+                              label={`+${member.skills.length - 2}`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: "0.7rem", height: 20 }}
+                            />
+                          </Tooltip>
+                        )}
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={0.5}>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleOpenDialog(member)}
+                            sx={{ color: "primary.main" }}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteMember(member.id)}
+                            sx={{ color: "error.main" }}
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       ) : (
+        // Card View (Original)
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="team-members">
             {(provided) => (

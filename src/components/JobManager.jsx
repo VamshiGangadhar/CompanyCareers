@@ -102,22 +102,13 @@ const JobManager = () => {
   const currencies = ["USD", "EUR", "GBP", "INR"];
 
   useEffect(() => {
-    console.log("JobManager: Company changed:", {
-      hasCompany: !!company,
-      companyId: company?.id,
-      companySlug: company?.slug,
-    });
-
     if (company?.id && company?.slug) {
       fetchJobs();
-    } else if (company === null) {
-      console.log("JobManager: Company is null, waiting for load");
     }
   }, [company?.id, company?.slug]);
 
   const fetchJobs = async () => {
     if (!company?.slug) {
-      console.log("Company not loaded yet, skipping fetch jobs");
       return;
     }
 
@@ -145,7 +136,6 @@ const JobManager = () => {
         throw new Error(errorData.error?.message || "Failed to fetch jobs");
       }
     } catch (error) {
-      console.error("Error fetching jobs:", error);
       toast.error(`Failed to load jobs: ${error.message}`);
       setJobs([]); // Set empty array on error
     } finally {
@@ -212,12 +202,6 @@ const JobManager = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      console.log("JobManager: Submitting job:", {
-        editing: !!editingJob,
-        hasToken: !!token,
-        companyId: company.id,
-        title: jobForm.title,
-      });
 
       const submitData = {
         ...jobForm,
@@ -255,7 +239,6 @@ const JobManager = () => {
         throw new Error(error.error?.message || "Failed to save job");
       }
     } catch (error) {
-      console.error("Error saving job:", error);
       toast.error(error.message);
     } finally {
       setLoading(false);
@@ -291,7 +274,6 @@ const JobManager = () => {
         throw new Error(errorData.error?.message || "Failed to delete job");
       }
     } catch (error) {
-      console.error("Error deleting job:", error);
       toast.error(`Failed to delete job: ${error.message}`);
     }
   };
@@ -334,7 +316,6 @@ const JobManager = () => {
         );
       }
     } catch (error) {
-      console.error("Error updating job status:", error);
       toast.error(`Failed to update job status: ${error.message}`);
     }
   };

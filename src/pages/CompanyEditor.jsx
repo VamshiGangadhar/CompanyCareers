@@ -54,15 +54,12 @@ const CompanyEditor = () => {
   const [anchorEl, setAnchorEl] = useState(null);
 
   useEffect(() => {
-    console.log("CompanyEditor: slug =", slug);
     if (slug) {
-      console.log("CompanyEditor: Fetching company with slug:", slug);
       fetchCompany(slug)
         .then((data) => {
-          console.log("CompanyEditor: Company fetched successfully:", data);
+          // Company fetched successfully
         })
         .catch((error) => {
-          console.error("CompanyEditor: Failed to fetch company:", error);
           toast.error("Failed to load company data");
         });
     }
@@ -77,6 +74,29 @@ const CompanyEditor = () => {
       toast.error("Failed to save changes");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    try {
+      const isCurrentlyPublished = company?.published;
+      await updateCompany(slug, {
+        ...company,
+        published: !isCurrentlyPublished,
+        publishedAt: !isCurrentlyPublished ? new Date().toISOString() : null,
+      });
+
+      if (!isCurrentlyPublished) {
+        toast.success("Company published successfully!");
+        // Optionally redirect to live page
+        setTimeout(() => {
+          window.open(`/${slug}/careers`, "_blank");
+        }, 1000);
+      } else {
+        toast.success("Company unpublished successfully!");
+      }
+    } catch (error) {
+      toast.error("Failed to update publish status");
     }
   };
 
@@ -161,28 +181,57 @@ const CompanyEditor = () => {
             </Typography>
           </Box>
           <Box sx={{ flexGrow: 1 }} />
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Typography variant="h6" component="h1" fontWeight="bold">
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mx: 3 }}>
+            <Typography variant="h6" component="h1" fontWeight="600">
               {company?.name || "Company"} Editor
             </Typography>
             <Chip
               label={slug}
               size="small"
-              variant="outlined"
-              sx={{ bgcolor: "white", color: "primary.main" }}
+              variant="filled"
+              sx={{
+                bgcolor: "rgba(255, 255, 255, 0.95)",
+                color: "primary.main",
+                fontWeight: 500,
+              }}
             />
+            {company?.published && (
+              <Chip
+                label="Published"
+                size="small"
+                color="success"
+                variant="filled"
+                sx={{ fontWeight: 600 }}
+              />
+            )}
+            {!company?.published && (
+              <Chip
+                label="Draft"
+                size="small"
+                color="warning"
+                variant="outlined"
+                sx={{ fontWeight: 600 }}
+              />
+            )}
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Button
               component={Link}
               to={`/company/${slug}/preview`}
               variant="outlined"
+              size="small"
               startIcon={<Preview />}
               sx={{
                 color: "white",
-                borderColor: "white",
-                "&:hover": { borderColor: "grey.300" },
+                borderColor: "rgba(255, 255, 255, 0.5)",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                fontWeight: 500,
+                minWidth: 100,
+                "&:hover": {
+                  borderColor: "white",
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                },
               }}
             >
               Preview
@@ -192,30 +241,83 @@ const CompanyEditor = () => {
               to={`/${slug}/careers`}
               target="_blank"
               variant="outlined"
+              size="small"
               startIcon={<Launch />}
               sx={{
                 color: "white",
-                borderColor: "white",
-                "&:hover": { borderColor: "grey.300" },
+                borderColor: "rgba(255, 255, 255, 0.5)",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                fontWeight: 500,
+                minWidth: 110,
+                "&:hover": {
+                  borderColor: "white",
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                },
               }}
             >
               View Live
             </Button>
             <LoadingButton
               variant="contained"
+              size="small"
               startIcon={<Save />}
               loading={saving}
               onClick={handleSave}
               sx={{
-                bgcolor: "secondary.main",
-                "&:hover": { bgcolor: "secondary.dark" },
+                bgcolor: "rgba(255, 255, 255, 0.95)",
+                color: "primary.main",
+                fontWeight: 600,
+                minWidth: 120,
+                "&:hover": {
+                  bgcolor: "white",
+                  transform: "translateY(-1px)",
+                },
+                "&:disabled": {
+                  bgcolor: "rgba(255, 255, 255, 0.7)",
+                },
               }}
             >
               Save Changes
             </LoadingButton>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Launch />}
+              onClick={handlePublish}
+              sx={{
+                bgcolor: company?.published ? "warning.main" : "success.main",
+                color: "white",
+                fontWeight: 600,
+                minWidth: 100,
+                ml: 1,
+                "&:hover": {
+                  bgcolor: company?.published ? "warning.dark" : "success.dark",
+                  transform: "translateY(-1px)",
+                },
+              }}
+            >
+              {company?.published ? "Unpublish" : "Publish"}
+            </Button>
 
-            <IconButton onClick={handleMenuClick} sx={{ ml: 1 }}>
-              <Avatar sx={{ width: 32, height: 32, bgcolor: "secondary.main" }}>
+            <IconButton
+              onClick={handleMenuClick}
+              sx={{
+                ml: 1,
+                bgcolor: "rgba(255, 255, 255, 0.1)",
+                "&:hover": {
+                  bgcolor: "rgba(255, 255, 255, 0.2)",
+                },
+              }}
+            >
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  bgcolor: "rgba(255, 255, 255, 0.95)",
+                  color: "primary.main",
+                  fontWeight: 600,
+                }}
+              >
                 {user?.email?.charAt(0).toUpperCase()}
               </Avatar>
             </IconButton>

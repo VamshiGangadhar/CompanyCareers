@@ -101,19 +101,11 @@ const SignUp = () => {
     e.preventDefault();
     setSubmitAttempted(true);
 
-    console.log("🔍 [SIGNUP] Form submission started with data:", {
-      ...formData,
-      password: "[REDACTED]",
-      confirmPassword: "[REDACTED]",
-    });
-
     if (!validateForm()) {
-      console.log("❌ [SIGNUP] Validation failed:", errors);
       toast.error("Please fix the errors before submitting");
       return;
     }
 
-    console.log("✅ [SIGNUP] Validation passed, attempting signup...");
     setLoading(true);
     try {
       const result = await signup({
@@ -122,19 +114,15 @@ const SignUp = () => {
         name: formData.fullName,
       });
 
-      console.log("📝 [SIGNUP] Signup result:", result);
-
       if (result.success) {
         toast.success("🎉 Account created successfully! Welcome aboard!");
         navigate("/dashboard");
       } else {
-        console.error("❌ [SIGNUP] Signup failed:", result.error);
         toast.error(
           result.error || "Failed to create account. Please try again."
         );
       }
     } catch (error) {
-      console.error("❌ [SIGNUP] Registration error:", error);
       toast.error("Failed to create account. Please try again.");
     } finally {
       setLoading(false);
@@ -143,10 +131,6 @@ const SignUp = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    console.log(
-      `📝 [SIGNUP] Field ${name} changed to:`,
-      value.length > 0 ? `[${value.length} chars]` : "empty"
-    );
 
     setFormData((prev) => ({ ...prev, [name]: value }));
 
@@ -154,9 +138,6 @@ const SignUp = () => {
     if (submitAttempted) {
       const error = validateField(name, value, { ...formData, [name]: value });
       setErrors((prev) => ({ ...prev, [name]: error }));
-      if (error) {
-        console.log(`⚠️ [SIGNUP] Validation error for ${name}:`, error);
-      }
     }
   };
 

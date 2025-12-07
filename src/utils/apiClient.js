@@ -19,7 +19,6 @@ const apiClient = axios.create({
 
 // Simple API call with step/payload
 const callAPI = async (step, payload = {}) => {
-  console.log("APIClient: Making call with step:", step, "payload:", payload);
   try {
     // Get token from localStorage (for mock auth) or Supabase session
     let token = localStorage.getItem("token");
@@ -29,8 +28,6 @@ const callAPI = async (step, payload = {}) => {
       const { data: session } = await supabase.auth.getSession();
       token = session?.session?.access_token;
     }
-
-    console.log("APIClient: Using token:", token ? "Present" : "Missing");
 
     const headers = {
       "Content-Type": "application/json",
@@ -50,19 +47,14 @@ const callAPI = async (step, payload = {}) => {
       }),
     });
 
-    console.log("APIClient: Response status:", response.status);
-
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("APIClient: Error response:", errorData);
       throw errorData;
     }
 
     const data = await response.json();
-    console.log("APIClient: Response received:", data);
     return data;
   } catch (error) {
-    console.error("APIClient: Error occurred:", error);
     throw error;
   }
 };

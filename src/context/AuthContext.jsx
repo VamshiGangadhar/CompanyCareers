@@ -17,21 +17,14 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("🔍 [AUTH] Checking localStorage for user data");
     const userData = localStorage.getItem("userData");
     const token = localStorage.getItem("token");
-
-    console.log("📊 [AUTH] Found in localStorage:", {
-      userData: userData ? "Present" : "Missing",
-      token: token ? "Present" : "Missing",
-    });
 
     // Check if token is old mock token and clear it
     if (
       token &&
       (token.startsWith("mock_token_") || token.startsWith("token_"))
     ) {
-      console.log("⚠️ [AUTH] Detected old mock token, clearing localStorage");
       localStorage.removeItem("userData");
       localStorage.removeItem("token");
       setUser(null);
@@ -41,10 +34,7 @@ export const AuthProvider = ({ children }) => {
 
     if (userData && token) {
       const parsedUser = JSON.parse(userData);
-      console.log("✅ [AUTH] Setting user from localStorage:", parsedUser);
       setUser(parsedUser);
-    } else {
-      console.log("❌ [AUTH] No user data found in localStorage");
     }
     setLoading(false);
   }, []);
@@ -52,8 +42,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     setLoading(true);
     try {
-      console.log("🔐 [AUTH] Starting login process for:", credentials.email);
-
       // Call backend API for authentication
       const response = await fetch(`${API_URL}/api/event`, {
         method: "POST",
@@ -69,16 +57,12 @@ export const AuthProvider = ({ children }) => {
         }),
       });
 
-      console.log("📡 [AUTH] Login API response status:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("❌ [AUTH] Login failed:", errorData);
         throw new Error(errorData.error || "Login failed");
       }
 
       const data = await response.json();
-      console.log("✅ [AUTH] Login successful:", data);
 
       // Create user object for localStorage
       const user = {
@@ -87,19 +71,12 @@ export const AuthProvider = ({ children }) => {
         name: data.user.name || data.user.email.split("@")[0],
       };
 
-      console.log("💾 [AUTH] Storing user data and token:", {
-        user: user,
-        token: data.token ? data.token.substring(0, 20) + "..." : "No token",
-      });
-
       localStorage.setItem("userData", JSON.stringify(user));
       localStorage.setItem("token", data.token);
       setUser(user);
 
-      console.log("✅ [AUTH] Login successful for:", credentials.email);
       return { success: true, user: user };
     } catch (error) {
-      console.error("❌ [AUTH] Login error:", error);
       return { success: false, error: error.message };
     } finally {
       setLoading(false);
@@ -109,8 +86,6 @@ export const AuthProvider = ({ children }) => {
   const signup = async (userData) => {
     setLoading(true);
     try {
-      console.log("🔐 [AUTH] Starting signup process for:", userData.email);
-
       // Call backend API to register user
       const response = await fetch(`${API_URL}/api/event`, {
         method: "POST",
@@ -130,19 +105,12 @@ export const AuthProvider = ({ children }) => {
         }),
       });
 
-      console.log(
-        "📡 [AUTH] Registration API response status:",
-        response.status
-      );
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("❌ [AUTH] Registration failed:", errorData);
         throw new Error(errorData.error || "Registration failed");
       }
 
       const data = await response.json();
-      console.log("✅ [AUTH] Registration successful:", data);
 
       // Create user object for localStorage from backend response
       const user = {
@@ -151,18 +119,12 @@ export const AuthProvider = ({ children }) => {
         name: data.user.name || userData.name || userData.email.split("@")[0],
       };
 
-      console.log("💾 [AUTH] Storing user data and token:", {
-        user: user,
-        token: data.token ? data.token.substring(0, 20) + "..." : "No token",
-      });
-
       localStorage.setItem("userData", JSON.stringify(user));
       localStorage.setItem("token", data.token);
       setUser(user);
 
       return { success: true, user: user };
     } catch (error) {
-      console.error("❌ [AUTH] Signup error:", error);
       return { success: false, error: error.message };
     } finally {
       setLoading(false);
@@ -170,7 +132,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    console.log("🚪 [AUTH] Logging out user");
     localStorage.removeItem("userData");
     localStorage.removeItem("token");
     setUser(null);

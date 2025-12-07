@@ -49,12 +49,8 @@ const SectionBuilder = ({ slug }) => {
   const { company, updateSections, loading } = useCompanyStore();
   const [newSectionType, setNewSectionType] = useState("");
 
-  console.log("SectionBuilder: Company state:", company);
-  console.log("SectionBuilder: Loading state:", loading);
-
   // Convert sections object to array if needed
   const sectionsData = company?.sections || {};
-  console.log("Company sections data:", sectionsData);
 
   // Handle both object and array formats
   const sections = Array.isArray(sectionsData)
@@ -63,8 +59,6 @@ const SectionBuilder = ({ slug }) => {
         id: section.id || `section-${section.type}`,
         ...section,
       }));
-
-  console.log("Processed sections array:", sections);
 
   // Show loading or error state if no company
   if (loading) {
@@ -103,14 +97,12 @@ const SectionBuilder = ({ slug }) => {
                   }),
                 });
                 const result = await response.json();
-                console.log("Connection test result:", result);
                 alert(
                   `Connection test: ${
                     result.success ? "SUCCESS" : "FAILED"
                   }\n${JSON.stringify(result, null, 2)}`
                 );
               } catch (error) {
-                console.error("Connection test error:", error);
                 alert(`Connection error: ${error.message}`);
               }
             }}
@@ -121,7 +113,6 @@ const SectionBuilder = ({ slug }) => {
             variant="contained"
             onClick={async () => {
               try {
-                console.log("Creating demo company...");
                 const API_URL =
                   import.meta.env.VITE_API_URL || "http://localhost:5000";
                 const response = await fetch(`${API_URL}/api/event`, {
@@ -133,13 +124,11 @@ const SectionBuilder = ({ slug }) => {
                   }),
                 });
                 const result = await response.json();
-                console.log("Demo company creation result:", result);
 
                 if (result.success) {
                   alert("Demo company created successfully! Reloading page...");
                   window.location.reload();
                 } else {
-                  console.error("Failed to create demo company:", result);
                   alert(
                     `Error: ${result.error}\nDetails: ${
                       result.details || "No additional details"
@@ -147,7 +136,6 @@ const SectionBuilder = ({ slug }) => {
                   );
                 }
               } catch (error) {
-                console.error("Error creating demo company:", error);
                 alert(`Network error: ${error.message}`);
               }
             }}
@@ -218,14 +206,11 @@ const SectionBuilder = ({ slug }) => {
   ];
 
   const handleDragEnd = (result) => {
-    console.log("Drag end result:", result);
     if (!result.destination) return;
 
     const items = Array.from(sections);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
-
-    console.log("Reordered sections:", items);
 
     // Convert back to object format
     const sectionsObject = {};
@@ -240,16 +225,13 @@ const SectionBuilder = ({ slug }) => {
   };
 
   const addSection = () => {
-    console.log("Adding section of type:", newSectionType);
     if (!newSectionType) {
-      console.log("No section type selected");
       return;
     }
 
     const sectionTemplate = sectionTypes.find(
       (type) => type.value === newSectionType
     );
-    console.log("Section template found:", sectionTemplate);
 
     const newSection = {
       id: `section-${Date.now()}`,
@@ -260,11 +242,7 @@ const SectionBuilder = ({ slug }) => {
       order: sections.length + 1,
     };
 
-    console.log("New section created:", newSection);
-    console.log("Current sections:", sections);
-
     const updatedSections = [...sections, newSection];
-    console.log("Updated sections array:", updatedSections);
 
     // Create a simpler object format for sections
     const sectionsObject = {};
@@ -285,15 +263,12 @@ const SectionBuilder = ({ slug }) => {
       };
     });
 
-    console.log("Sections object to save:", sectionsObject);
     updateSections(sectionsObject);
     setNewSectionType("");
   };
 
   const removeSection = (index) => {
-    console.log("Removing section at index:", index);
     const newSections = sections.filter((_, i) => i !== index);
-    console.log("Sections after removal:", newSections);
 
     // Convert back to object format
     const sectionsObject = {};
@@ -308,14 +283,6 @@ const SectionBuilder = ({ slug }) => {
   };
 
   const updateSection = (index, field, value) => {
-    console.log(
-      "Updating section at index:",
-      index,
-      "field:",
-      field,
-      "value:",
-      value
-    );
     const newSections = [...sections];
     if (field.includes(".")) {
       const [parent, child] = field.split(".");
@@ -333,8 +300,6 @@ const SectionBuilder = ({ slug }) => {
       };
     }
 
-    console.log("Updated sections:", newSections);
-
     // Convert back to object format
     const sectionsObject = {};
     newSections.forEach((section, idx) => {
@@ -348,14 +313,11 @@ const SectionBuilder = ({ slug }) => {
   };
 
   const toggleSectionVisibility = (index) => {
-    console.log("Toggling visibility for section at index:", index);
     const newSections = [...sections];
     newSections[index] = {
       ...newSections[index],
       visible: !newSections[index].visible,
     };
-
-    console.log("Sections after visibility toggle:", newSections);
 
     // Convert back to object format
     const sectionsObject = {};
@@ -384,9 +346,6 @@ const SectionBuilder = ({ slug }) => {
             size="small"
             startIcon={<SaveIcon />}
             onClick={() => {
-              console.log(
-                "Save button clicked - you'll need to implement handleSave from parent"
-              );
               // This should be passed as prop from CompanyEditor
             }}
           >

@@ -46,7 +46,6 @@ import {
   Group,
   Work,
   Visibility,
-  Settings,
   Star,
   Refresh,
 } from "@mui/icons-material";
@@ -66,12 +65,6 @@ const Dashboard = () => {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   useEffect(() => {
-    console.log("🔄 [DASHBOARD] useEffect triggered, user state:", {
-      user: user ? { id: user.id, email: user.email, name: user.name } : null,
-      authLoading,
-      localLoading: loading,
-    });
-
     if (!authLoading) {
       fetchUserCompanies();
     }
@@ -108,11 +101,6 @@ const Dashboard = () => {
         },
       };
 
-      console.log("📤 [DASHBOARD] Sending API request:", {
-        url: `${API_URL}/api/event`,
-        payload: requestPayload,
-      });
-
       // Try to get companies based on user email
       const response = await fetch(`${API_URL}/api/event`, {
         method: "POST",
@@ -123,55 +111,20 @@ const Dashboard = () => {
         body: JSON.stringify(requestPayload),
       });
 
-      console.log("📥 [DASHBOARD] API response status:", {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-      });
-
       if (response.ok) {
         const data = await response.json();
-        console.log("📊 [DASHBOARD] API response data:", {
-          success: data.success,
-          companiesCount: data.data?.companies?.length || 0,
-          companies:
-            data.data?.companies?.map((c) => ({
-              id: c.id,
-              name: c.name,
-              slug: c.slug,
-              created_by: c.created_by,
-            })) || [],
-        });
 
         if (data.success && data.data?.companies) {
-          console.log(
-            "✅ [DASHBOARD] Setting companies:",
-            data.data.companies.length
-          );
           setCompanies(data.data.companies);
 
           // Save company slugs for future reference
           const slugs = data.data.companies.map((c) => c.slug);
           localStorage.setItem("userCompanySlugs", JSON.stringify(slugs));
-          console.log(
-            "💾 [DASHBOARD] Saved company slugs to localStorage:",
-            slugs
-          );
         } else {
-          console.log("❌ [DASHBOARD] No companies found in response");
           setCompanies([]);
         }
       } else {
         const errorText = await response.text();
-        console.log("❌ [DASHBOARD] API request failed:", {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-        });
-
-        console.log(
-          "🔄 [DASHBOARD] GET_USER_COMPANIES endpoint failed, checking for saved companies"
-        );
 
         // Fallback: Check localStorage for previously saved companies
         const savedCompanySlugs = localStorage.getItem("userCompanySlugs");
@@ -200,7 +153,7 @@ const Dashboard = () => {
                 }
               }
             } catch (err) {
-              console.error("Error fetching company:", slug, err);
+              // Error fetching company
             }
           }
 
@@ -211,7 +164,6 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-      console.error("Dashboard: Error fetching companies:", error);
       setError(error.message);
       toast.error(`Failed to load companies: ${error.message}`);
       setCompanies([]);
@@ -220,21 +172,7 @@ const Dashboard = () => {
     }
   };
 
-  // Debug function to check localStorage
-  const debugLocalStorage = () => {
-    console.log("🔍 [DEBUG] LocalStorage contents:");
-    console.log("userData:", localStorage.getItem("userData"));
-    console.log("token:", localStorage.getItem("token"));
-    console.log("userCompanySlugs:", localStorage.getItem("userCompanySlugs"));
-    console.log("Current user state:", user);
-
-    // Force reload user from localStorage
-    const userData = localStorage.getItem("userData");
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      console.log("🔄 [DEBUG] Parsed user from localStorage:", parsedUser);
-    }
-  };
+  // Debug function removed to clean up console logs
 
   const searchForCompany = async () => {
     if (!searchSlug.trim()) {
@@ -277,7 +215,6 @@ const Dashboard = () => {
         toast.error("Company not found or you don't have access");
       }
     } catch (error) {
-      console.error("Error searching for company:", error);
       toast.error("Error searching for company");
     } finally {
       setSearchLoading(false);
@@ -334,9 +271,24 @@ const Dashboard = () => {
             <Chip
               label={user?.email}
               variant="outlined"
-              sx={{ color: "white", borderColor: "white" }}
+              size="small"
+              sx={{
+                color: "white",
+                borderColor: "rgba(255, 255, 255, 0.5)",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                fontWeight: 500,
+              }}
             />
-            <IconButton color="inherit" onClick={handleMenuOpen}>
+            <IconButton
+              color="inherit"
+              onClick={handleMenuOpen}
+              sx={{
+                bgcolor: "rgba(255, 255, 255, 0.1)",
+                "&:hover": {
+                  bgcolor: "rgba(255, 255, 255, 0.2)",
+                },
+              }}
+            >
               <AccountCircle />
             </IconButton>
             <Menu
@@ -422,21 +374,6 @@ const Dashboard = () => {
               flexDirection: { xs: "column", sm: "row" },
             }}
           >
-            <Tooltip title="Debug authentication info">
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={debugLocalStorage}
-                startIcon={<Settings />}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
-                  fontWeight: 600,
-                }}
-              >
-                Debug Info
-              </Button>
-            </Tooltip>
             {!authLoading && !loading && companies.length > 0 && (
               <Tooltip title="Refresh companies list">
                 <Button
@@ -555,276 +492,350 @@ const Dashboard = () => {
             </Box>
           </Box>
         ) : (
-          <Grid container spacing={3}>
-            {/* Company Cards */}
-            {companies.map((company, index) => (
-              <Grid item xs={12} md={6} lg={4} key={company.slug}>
-                <Zoom
-                  in={true}
-                  timeout={300 + index * 100}
-                  style={{ transitionDelay: `${index * 50}ms` }}
-                >
+          <>
+            {/* Statistics Cards */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Overview
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={6} sm={3}>
                   <Card
                     sx={{
-                      height: "100%",
-                      position: "relative",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      border: "1px solid rgba(0, 0, 0, 0.08)",
-                      borderRadius: 3,
-                      overflow: "hidden",
-                      "&:hover": {
-                        transform: "translateY(-8px)",
-                        boxShadow: "0 12px 40px rgba(102, 126, 234, 0.15)",
-                        borderColor: "primary.main",
-                      },
+                      p: 2,
+                      textAlign: "center",
+                      bgcolor: "primary.main",
+                      color: "white",
                     }}
                   >
-                    {/* Company Header with Gradient */}
-                    <Box
-                      sx={{
-                        height: 80,
-                        background: company.branding?.primaryColor
-                          ? `linear-gradient(135deg, ${
-                              company.branding.primaryColor
-                            } 0%, ${
-                              company.branding.secondaryColor ||
-                              company.branding.primaryColor
-                            } 100%)`
-                          : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                        position: "relative",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "flex-start",
-                        px: 3,
-                      }}
-                    >
-                      {company.branding?.logo ? (
-                        <Avatar
-                          src={company.branding.logo}
-                          sx={{
-                            width: 48,
-                            height: 48,
-                            border: "2px solid rgba(255, 255, 255, 0.3)",
-                          }}
-                        />
-                      ) : (
-                        <Avatar
-                          sx={{
-                            width: 48,
-                            height: 48,
-                            bgcolor: "rgba(255, 255, 255, 0.2)",
-                            color: "white",
-                            fontSize: 20,
-                            fontWeight: 600,
-                            border: "2px solid rgba(255, 255, 255, 0.3)",
-                          }}
-                        >
-                          {company.name?.charAt(0)?.toUpperCase()}
-                        </Avatar>
+                    <Typography variant="h4" fontWeight="bold">
+                      {companies.length}
+                    </Typography>
+                    <Typography variant="body2">Total Companies</Typography>
+                  </Card>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Card
+                    sx={{
+                      p: 2,
+                      textAlign: "center",
+                      bgcolor: "success.main",
+                      color: "white",
+                    }}
+                  >
+                    <Typography variant="h4" fontWeight="bold">
+                      {companies.filter((c) => c.published).length}
+                    </Typography>
+                    <Typography variant="body2">Published</Typography>
+                  </Card>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Card
+                    sx={{
+                      p: 2,
+                      textAlign: "center",
+                      bgcolor: "warning.main",
+                      color: "white",
+                    }}
+                  >
+                    <Typography variant="h4" fontWeight="bold">
+                      {companies.filter((c) => !c.published).length}
+                    </Typography>
+                    <Typography variant="body2">Drafts</Typography>
+                  </Card>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Card
+                    sx={{
+                      p: 2,
+                      textAlign: "center",
+                      bgcolor: "info.main",
+                      color: "white",
+                    }}
+                  >
+                    <Typography variant="h4" fontWeight="bold">
+                      {companies.reduce(
+                        (sum, c) => sum + (c.team?.length || 0),
+                        0
                       )}
+                    </Typography>
+                    <Typography variant="body2">Team Members</Typography>
+                  </Card>
+                </Grid>
+              </Grid>
+            </Box>
 
-                      <Box sx={{ ml: 2, flex: 1 }}>
-                        <Typography
-                          variant="h6"
-                          sx={{
-                            fontWeight: 700,
-                            color: "white",
-                            fontSize: "1.1rem",
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {company.name}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: "rgba(255, 255, 255, 0.8)",
-                            fontSize: "0.8rem",
-                          }}
-                        >
-                          /{company.slug}
-                        </Typography>
-                      </Box>
-
-                      {/* Status Badge */}
-                      <Chip
-                        label={company.isActive ? "Active" : "Draft"}
-                        size="small"
-                        sx={{
-                          bgcolor: company.isActive
-                            ? "rgba(76, 175, 80, 0.9)"
-                            : "rgba(255, 255, 255, 0.9)",
-                          color: company.isActive ? "white" : "text.primary",
-                          fontWeight: 600,
-                        }}
-                      />
-                    </Box>
-
-                    <CardContent
+            <Grid container spacing={3}>
+              {/* Company Cards */}
+              {companies.map((company, index) => (
+                <Grid item xs={12} md={6} lg={4} key={company.slug}>
+                  <Zoom
+                    in={true}
+                    timeout={300 + index * 100}
+                    style={{ transitionDelay: `${index * 50}ms` }}
+                  >
+                    <Card
                       sx={{
-                        p: 3,
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "space-between",
-                        minHeight: "180px",
-                        flexGrow: 1,
+                        height: "100%",
+                        position: "relative",
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        border: "1px solid rgba(0, 0, 0, 0.08)",
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        "&:hover": {
+                          transform: "translateY(-8px)",
+                          boxShadow: "0 12px 40px rgba(102, 126, 234, 0.15)",
+                          borderColor: "primary.main",
+                        },
                       }}
                     >
-                      <Box sx={{ flexGrow: 1 }}>
-                        {company.description && (
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{
-                              mb: 3,
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            {company.description}
-                          </Typography>
-                        )}
-
-                        <Box sx={{ mb: 3 }}>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontWeight: 500 }}
-                          >
-                            Last updated:{" "}
-                            {new Date(
-                              company.updatedAt || company.createdAt
-                            ).toLocaleDateString()}
-                          </Typography>
-                        </Box>
-                      </Box>
-
+                      {/* Company Header with Gradient */}
                       <Box
                         sx={{
+                          height: 80,
+                          background: company.branding?.primaryColor
+                            ? `linear-gradient(135deg, ${
+                                company.branding.primaryColor
+                              } 0%, ${
+                                company.branding.secondaryColor ||
+                                company.branding.primaryColor
+                              } 100%)`
+                            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                          position: "relative",
                           display: "flex",
-                          flexWrap: "wrap",
-                          gap: 1,
-                          mt: "auto",
+                          alignItems: "center",
+                          justifyContent: "flex-start",
+                          px: 3,
                         }}
                       >
-                        <Chip
-                          icon={<Work />}
-                          label={`${
-                            Object.keys(company.sections || {}).length
-                          } sections`}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            borderColor: "primary.main",
-                            color: "primary.main",
-                            fontWeight: 500,
-                          }}
-                        />
-                        <Chip
-                          icon={<Group />}
-                          label={`${(company.team || []).length} members`}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            borderColor: "secondary.main",
-                            color: "secondary.main",
-                            fontWeight: 500,
-                          }}
-                        />
-                        {company.branding?.primaryColor && (
-                          <Chip
-                            label="Branded"
-                            size="small"
+                        {company.branding?.logo ? (
+                          <Avatar
+                            src={company.branding.logo}
                             sx={{
-                              bgcolor: company.branding.primaryColor + "20",
-                              color: company.branding.primaryColor,
-                              fontWeight: 500,
-                              border: `1px solid ${company.branding.primaryColor}30`,
+                              width: 48,
+                              height: 48,
+                              border: "2px solid rgba(255, 255, 255, 0.3)",
                             }}
                           />
+                        ) : (
+                          <Avatar
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              bgcolor: "rgba(255, 255, 255, 0.2)",
+                              color: "white",
+                              fontSize: 20,
+                              fontWeight: 600,
+                              border: "2px solid rgba(255, 255, 255, 0.3)",
+                            }}
+                          >
+                            {company.name?.charAt(0)?.toUpperCase()}
+                          </Avatar>
                         )}
-                      </Box>
-                    </CardContent>
 
-                    <CardActions
-                      sx={{
-                        p: 3,
-                        pt: 0,
-                        gap: 1,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Box sx={{ display: "flex", gap: 1, flex: 1 }}>
-                        <Tooltip title="Edit company">
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<Edit />}
-                            component={Link}
-                            to={`/company/${company.slug}/edit`}
+                        <Box sx={{ ml: 2, flex: 1 }}>
+                          <Typography
+                            variant="h6"
                             sx={{
-                              borderRadius: 2,
-                              textTransform: "none",
-                              fontWeight: 600,
-                              flex: 1,
-                              "&:hover": {
-                                backgroundColor: "rgba(102, 126, 234, 0.04)",
-                              },
+                              fontWeight: 700,
+                              color: "white",
+                              fontSize: "1.1rem",
+                              lineHeight: 1.2,
                             }}
                           >
-                            Edit
-                          </Button>
-                        </Tooltip>
-                        <Tooltip title="Preview careers page">
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<Preview />}
-                            component={Link}
-                            to={`/company/${company.slug}/preview`}
+                            {company.name}
+                          </Typography>
+                          <Typography
+                            variant="body2"
                             sx={{
-                              borderRadius: 2,
-                              textTransform: "none",
-                              fontWeight: 600,
-                              flex: 1,
-                              borderColor: "secondary.main",
-                              color: "secondary.main",
-                              "&:hover": {
-                                backgroundColor: "rgba(118, 75, 162, 0.04)",
-                                borderColor: "secondary.dark",
-                              },
+                              color: "rgba(255, 255, 255, 0.8)",
+                              fontSize: "0.8rem",
                             }}
                           >
-                            Preview
-                          </Button>
-                        </Tooltip>
-                      </Box>
-                      <Tooltip title="Visit live site">
-                        <IconButton
-                          component={Link}
-                          to={`/${company.slug}/careers`}
-                          target="_blank"
+                            /{company.slug}
+                          </Typography>
+                        </Box>
+
+                        {/* Status Badge */}
+                        <Chip
+                          label={company.published ? "Published" : "Draft"}
+                          size="small"
                           sx={{
-                            color: "success.main",
-                            "&:hover": {
-                              backgroundColor: "rgba(76, 175, 80, 0.08)",
-                              transform: "scale(1.1)",
-                            },
-                            transition: "all 0.2s",
+                            bgcolor: company.published
+                              ? "rgba(76, 175, 80, 0.9)"
+                              : "rgba(255, 152, 0, 0.9)",
+                            color: "white",
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+
+                      <CardContent
+                        sx={{
+                          p: 3,
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          minHeight: "180px",
+                          flexGrow: 1,
+                        }}
+                      >
+                        <Box sx={{ flexGrow: 1 }}>
+                          {company.description && (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{
+                                mb: 3,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              {company.description}
+                            </Typography>
+                          )}
+
+                          <Box sx={{ mb: 3 }}>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ fontWeight: 500 }}
+                            >
+                              Last updated:{" "}
+                              {new Date(
+                                company.updatedAt || company.createdAt
+                              ).toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 1,
+                            mt: "auto",
                           }}
                         >
-                          <Launch />
-                        </IconButton>
-                      </Tooltip>
-                    </CardActions>
-                  </Card>
-                </Zoom>
-              </Grid>
-            ))}
-          </Grid>
+                          <Chip
+                            icon={<Work />}
+                            label={`${
+                              Object.keys(company.sections || {}).length
+                            } sections`}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              borderColor: "primary.main",
+                              color: "primary.main",
+                              fontWeight: 500,
+                            }}
+                          />
+                          <Chip
+                            icon={<Group />}
+                            label={`${(company.team || []).length} members`}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              borderColor: "secondary.main",
+                              color: "secondary.main",
+                              fontWeight: 500,
+                            }}
+                          />
+                          {company.branding?.primaryColor && (
+                            <Chip
+                              label="Branded"
+                              size="small"
+                              sx={{
+                                bgcolor: company.branding.primaryColor + "20",
+                                color: company.branding.primaryColor,
+                                fontWeight: 500,
+                                border: `1px solid ${company.branding.primaryColor}30`,
+                              }}
+                            />
+                          )}
+                        </Box>
+                      </CardContent>
+
+                      <CardActions
+                        sx={{
+                          p: 3,
+                          pt: 0,
+                          gap: 1,
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Box sx={{ display: "flex", gap: 1, flex: 1 }}>
+                          <Tooltip title="Edit company">
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<Edit />}
+                              component={Link}
+                              to={`/company/${company.slug}/edit`}
+                              sx={{
+                                borderRadius: 2,
+                                textTransform: "none",
+                                fontWeight: 600,
+                                flex: 1,
+                                "&:hover": {
+                                  backgroundColor: "rgba(102, 126, 234, 0.04)",
+                                },
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          </Tooltip>
+                          <Tooltip title="Preview careers page">
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<Preview />}
+                              component={Link}
+                              to={`/company/${company.slug}/preview`}
+                              sx={{
+                                borderRadius: 2,
+                                textTransform: "none",
+                                fontWeight: 600,
+                                flex: 1,
+                                borderColor: "secondary.main",
+                                color: "secondary.main",
+                                "&:hover": {
+                                  backgroundColor: "rgba(118, 75, 162, 0.04)",
+                                  borderColor: "secondary.dark",
+                                },
+                              }}
+                            >
+                              Preview
+                            </Button>
+                          </Tooltip>
+                        </Box>
+                        <Tooltip title="Visit live site">
+                          <IconButton
+                            component={Link}
+                            to={`/${company.slug}/careers`}
+                            target="_blank"
+                            sx={{
+                              color: "success.main",
+                              "&:hover": {
+                                backgroundColor: "rgba(76, 175, 80, 0.08)",
+                                transform: "scale(1.1)",
+                              },
+                              transition: "all 0.2s",
+                            }}
+                          >
+                            <Launch />
+                          </IconButton>
+                        </Tooltip>
+                      </CardActions>
+                    </Card>
+                  </Zoom>
+                </Grid>
+              ))}
+            </Grid>
+          </>
         )}
       </Container>
 

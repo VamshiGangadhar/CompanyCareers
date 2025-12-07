@@ -33,16 +33,12 @@ const useCompanyStore = create((set, get) => ({
 
   // Fetch company data
   fetchCompany: async (slug) => {
-    console.log("CompanyStore: fetchCompany called with slug:", slug);
     set({ loading: true, error: null });
     try {
-      console.log("CompanyStore: Making API call to fetch company");
       const response = await companyAPI.getBySlug(slug);
-      console.log("CompanyStore: API response received:", response);
       set({ company: response, loading: false });
       return response;
     } catch (error) {
-      console.error("CompanyStore: Error fetching company:", error);
       set({
         error:
           error.response?.data?.message ||
@@ -56,14 +52,38 @@ const useCompanyStore = create((set, get) => ({
 
   // Update company data
   updateCompany: async (slug, data) => {
+    const { company } = get();
     set({ loading: true, error: null });
     try {
+      // Optimistically update local state first for immediate UI feedback
+      if (company) {
+        const optimisticUpdate = { ...company, ...data };
+        set({ company: optimisticUpdate });
+      }
+
       const response = await companyAPI.update(slug, data);
-      set({ company: response.data, loading: false });
-      return response.data;
+      // Backend returns data directly, not wrapped in .data
+      const updatedCompany = response.data || response;
+
+      // Ensure published fields are properly set
+      const finalCompany = {
+        ...updatedCompany,
+        published: updatedCompany.published || false,
+        publishedAt: updatedCompany.publishedAt || updatedCompany.published_at,
+      };
+
+      set({ company: finalCompany, loading: false });
+      return finalCompany;
     } catch (error) {
+      // Revert optimistic update on error
+      if (company) {
+        set({ company });
+      }
       set({
-        error: error.response?.data?.message || "Failed to update company",
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update company",
         loading: false,
       });
       throw error;
@@ -104,10 +124,10 @@ const useCompanyStore = create((set, get) => ({
         const response = await companyAPI.update(company.slug, {
           branding: updatedCompany.branding,
         });
-        // Update with server response to ensure consistency
-        set({ company: { ...updatedCompany, ...response }, saving: false });
+        // Backend returns data directly, not wrapped in .data
+        const serverData = response.data || response;
+        set({ company: { ...updatedCompany, ...serverData }, saving: false });
       } catch (error) {
-        console.error("Failed to auto-save branding changes:", error);
         // Revert local state on error
         set({ company, saving: false });
       }
@@ -116,15 +136,12 @@ const useCompanyStore = create((set, get) => ({
 
   // Update company sections with auto-save
   updateSections: async (sections) => {
-    console.log("Store: updateSections called with:", sections);
     const { company } = get();
-    console.log("Store: current company:", company);
     if (company) {
       const updatedCompany = {
         ...company,
         sections,
       };
-      console.log("Store: updating company with new sections:", updatedCompany);
 
       // Update local state immediately
       set({ company: updatedCompany });
@@ -134,16 +151,15 @@ const useCompanyStore = create((set, get) => ({
         const response = await companyAPI.update(company.slug, {
           sections: updatedCompany.sections,
         });
-        console.log("Store: sections auto-saved successfully");
-        // Update with server response to ensure consistency
-        set({ company: { ...updatedCompany, ...response } });
+        // Backend returns data directly, not wrapped in .data
+        const serverData = response.data || response;
+        set({ company: { ...updatedCompany, ...serverData } });
       } catch (error) {
-        console.error("Failed to auto-save sections:", error);
         // Revert local state on error
         set({ company });
       }
     } else {
-      console.log("Store: No company found to update sections");
+      // No company found to update sections
     }
   },
 

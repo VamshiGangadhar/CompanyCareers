@@ -208,7 +208,6 @@ const CompanySetup = () => {
       toast.success("Company created successfully!");
       navigate(`/company/${formData.slug}/edit`);
     } catch (error) {
-      console.error("Error creating company:", error);
       toast.error(error.message || "Failed to create company");
     }
   };
