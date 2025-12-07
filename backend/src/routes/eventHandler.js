@@ -506,7 +506,7 @@ const getCompany = async ({ slug }, res) => {
 };
 
 const updateCompany = async (
-  { slug, name, branding, sections, currentUser },
+  { slug, name, branding, sections, team, published, publishedAt, currentUser },
   res
 ) => {
   try {
@@ -518,6 +518,9 @@ const updateCompany = async (
       name: !!name,
       branding: !!branding,
       sections: !!sections,
+      team: !!team,
+      published: published,
+      publishedAt: !!publishedAt,
     });
 
     if (!currentUser) {
@@ -565,11 +568,31 @@ const updateCompany = async (
     if (name !== undefined) updateData.name = name;
     if (branding !== undefined) updateData.branding = branding;
     if (sections !== undefined) updateData.sections = sections;
+    if (team !== undefined) updateData.team = team;
+    if (published !== undefined) {
+      updateData.published = published;
+      console.log(
+        `📢 [UPDATE_COMPANY] Setting published status to: ${published}`
+      );
+    }
+    if (publishedAt !== undefined) {
+      updateData.publishedAt = publishedAt;
+      console.log(
+        `📅 [UPDATE_COMPANY] Setting published date to: ${publishedAt}`
+      );
+    }
 
     console.log(
       `💾 [UPDATE_COMPANY] Final update data:`,
       Object.keys(updateData)
     );
+
+    // Log team update specifically
+    if (team !== undefined) {
+      console.log(
+        `👥 [UPDATE_COMPANY] Updating team with ${team.length} members`
+      );
+    }
 
     const { data, error } = await supabase
       .from("companies")
@@ -579,13 +602,21 @@ const updateCompany = async (
       .single();
 
     if (error) {
+      console.error(`❌ [UPDATE_COMPANY] Database error:`, error);
       throw error;
     }
 
+    console.log(`✅ [UPDATE_COMPANY] Successfully updated company:`, data.id);
+
     return res.json({
-      ...data,
-      createdAt: data.createdAt || data.created_at || new Date().toISOString(),
-      updatedAt: data.updatedAt || data.updated_at || new Date().toISOString(),
+      success: true,
+      data: {
+        ...data,
+        createdAt:
+          data.createdAt || data.created_at || new Date().toISOString(),
+        updatedAt:
+          data.updatedAt || data.updated_at || new Date().toISOString(),
+      },
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
