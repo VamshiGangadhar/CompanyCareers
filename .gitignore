@@ -117,4 +117,3 @@ prisma/migrations/dev.db
 
 # Old structure (for cleanup)
 client/
-server/
