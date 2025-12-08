@@ -338,21 +338,7 @@ const SectionBuilder = ({ slug }) => {
   return (
     <Box>
       {/* Save Reminder */}
-      <Alert
-        severity="info"
-        sx={{ mb: 2 }}
-        action={
-          <Button
-            size="small"
-            startIcon={<SaveIcon />}
-            onClick={() => {
-              // This should be passed as prop from CompanyEditor
-            }}
-          >
-            Save Changes
-          </Button>
-        }
-      >
+      <Alert severity="info" sx={{ mb: 2 }}>
         Remember to save your changes! Sections are updated locally until you
         click Save.
       </Alert>

@@ -31,6 +31,7 @@ import {
   Badge,
   InputAdornment,
   CircularProgress,
+  Avatar,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -50,6 +51,7 @@ import {
   Business as DepartmentIcon,
   WorkOutline as JobTypeIcon,
   CheckCircle as StatusIcon,
+  PhotoCamera,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -900,355 +902,523 @@ const JobManager = () => {
           <AddIcon />
         </Fab>
 
-        {/* Job Form Dialog */}
+        {/* ---------------------------
+            UPGRADED JOB FORM DIALOG
+           (Stripe Onboarding style with right sidebar)
+           Sidebar width = 300px (Option 1)
+        --------------------------- */}
         <Dialog
           open={dialogOpen}
           onClose={handleCloseDialog}
-          maxWidth="md"
+          maxWidth="lg"
           fullWidth
-          PaperProps={{ sx: { maxHeight: "90vh" } }}
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            },
+          }}
         >
-          <DialogTitle>
-            {editingJob ? "Edit Job" : "Create New Job"}
-          </DialogTitle>
-          <DialogContent sx={{ pt: 1 }}>
-            <Stack spacing={3}>
-              {/* Basic Information */}
-              <Typography variant="h6" color="primary">
-                Basic Information
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Job Title *"
-                    value={jobForm.title}
-                    onChange={(e) =>
-                      setJobForm((prev) => ({ ...prev, title: e.target.value }))
-                    }
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Department"
-                    value={jobForm.department}
-                    onChange={(e) =>
-                      setJobForm((prev) => ({
-                        ...prev,
-                        department: e.target.value,
-                      }))
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Location"
-                    value={jobForm.location}
-                    onChange={(e) =>
-                      setJobForm((prev) => ({
-                        ...prev,
-                        location: e.target.value,
-                      }))
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControl fullWidth>
-                    <InputLabel>Location Type</InputLabel>
-                    <Select
-                      value={jobForm.locationType}
-                      onChange={(e) =>
-                        setJobForm((prev) => ({
-                          ...prev,
-                          locationType: e.target.value,
-                        }))
-                      }
-                      label="Location Type"
-                    >
-                      {locationTypes.map((type) => (
-                        <MenuItem key={type} value={type}>
-                          {type}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControl fullWidth>
-                    <InputLabel>Job Type</InputLabel>
-                    <Select
-                      value={jobForm.type}
-                      onChange={(e) =>
-                        setJobForm((prev) => ({
-                          ...prev,
-                          type: e.target.value,
-                        }))
-                      }
-                      label="Job Type"
-                    >
-                      {jobTypes.map((type) => (
-                        <MenuItem key={type} value={type}>
-                          {type}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControl fullWidth>
-                    <InputLabel>Experience Level</InputLabel>
-                    <Select
-                      value={jobForm.experienceLevel}
-                      onChange={(e) =>
-                        setJobForm((prev) => ({
-                          ...prev,
-                          experienceLevel: e.target.value,
-                        }))
-                      }
-                      label="Experience Level"
-                    >
-                      {experienceLevels.map((level) => (
-                        <MenuItem key={level} value={level}>
-                          {level}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
+          {/* ---------- HEADER ---------- */}
+          <Box
+            sx={{
+              px: 4,
+              py: 3,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Typography variant="h5" fontWeight={700}>
+              {editingJob ? "Edit Job" : "Create New Job"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Fill in the details below to publish a job posting.
+            </Typography>
+          </Box>
 
-              <Divider />
+          {/* ---------- BODY (FORM + SIDEBAR) ---------- */}
+          <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            {/* =======================
+        LEFT: MAIN FORM
+    ======================== */}
+            <Box
+              sx={{
+                flex: 1,
+                overflowY: "auto",
+                px: 4,
+                py: 4,
+              }}
+            >
+              <Stack spacing={4}>
+                {/* -----------------------------------
+            SECTION: BASIC INFORMATION
+        ------------------------------------ */}
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                    Basic Information
+                  </Typography>
 
-              {/* Job Description */}
-              <Typography variant="h6" color="primary">
-                Job Description
-              </Typography>
-              <TextField
-                fullWidth
-                label="Job Description"
-                multiline
-                rows={4}
-                value={jobForm.description}
-                onChange={(e) =>
-                  setJobForm((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-                helperText="Describe the role and what the candidate will be doing"
-              />
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Job Title *"
+                        value={jobForm.title}
+                        required
+                        onChange={(e) =>
+                          setJobForm((prev) => ({
+                            ...prev,
+                            title: e.target.value,
+                          }))
+                        }
+                      />
+                    </Grid>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Department"
+                        value={jobForm.department}
+                        onChange={(e) =>
+                          setJobForm((prev) => ({
+                            ...prev,
+                            department: e.target.value,
+                          }))
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Location"
+                        value={jobForm.location}
+                        onChange={(e) =>
+                          setJobForm((prev) => ({
+                            ...prev,
+                            location: e.target.value,
+                          }))
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <FormControl fullWidth sx={{ minWidth: 180 }}>
+                        <InputLabel>Location Type</InputLabel>
+                        <Select
+                          label="Location Type"
+                          value={jobForm.locationType}
+                          onChange={(e) =>
+                            setJobForm((prev) => ({
+                              ...prev,
+                              locationType: e.target.value,
+                            }))
+                          }
+                        >
+                          {locationTypes.map((type) => (
+                            <MenuItem key={type} value={type}>
+                              {type}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <FormControl fullWidth sx={{ minWidth: 180 }}>
+                        <InputLabel>Job Type</InputLabel>
+                        <Select
+                          label="Job Type"
+                          value={jobForm.type}
+                          onChange={(e) =>
+                            setJobForm((prev) => ({
+                              ...prev,
+                              type: e.target.value,
+                            }))
+                          }
+                        >
+                          {jobTypes.map((type) => (
+                            <MenuItem key={type} value={type}>
+                              {type}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <FormControl fullWidth sx={{ minWidth: 180 }}>
+                        <InputLabel>Experience Level</InputLabel>
+                        <Select
+                          label="Experience Level"
+                          value={jobForm.experienceLevel}
+                          onChange={(e) =>
+                            setJobForm((prev) => ({
+                              ...prev,
+                              experienceLevel: e.target.value,
+                            }))
+                          }
+                        >
+                          {experienceLevels.map((level) => (
+                            <MenuItem key={level} value={level}>
+                              {level}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                </Paper>
+
+                {/* -----------------------------------
+            SECTION: DESCRIPTION
+        ------------------------------------ */}
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                    Job Description
+                  </Typography>
+
                   <TextField
                     fullWidth
-                    label="Responsibilities"
                     multiline
                     rows={4}
-                    value={jobForm.responsibilities.join("\n")}
-                    onChange={(e) =>
-                      handleArrayFieldChange("responsibilities", e.target.value)
-                    }
-                    helperText="One responsibility per line"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Requirements"
-                    multiline
-                    rows={4}
-                    value={jobForm.requirements.join("\n")}
-                    onChange={(e) =>
-                      handleArrayFieldChange("requirements", e.target.value)
-                    }
-                    helperText="One requirement per line"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Skills"
-                    multiline
-                    rows={3}
-                    value={jobForm.skills.join("\n")}
-                    onChange={(e) =>
-                      handleArrayFieldChange("skills", e.target.value)
-                    }
-                    helperText="One skill per line"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Benefits"
-                    multiline
-                    rows={3}
-                    value={jobForm.benefits.join("\n")}
-                    onChange={(e) =>
-                      handleArrayFieldChange("benefits", e.target.value)
-                    }
-                    helperText="One benefit per line"
-                  />
-                </Grid>
-              </Grid>
-
-              <TextField
-                fullWidth
-                label="Perks & Additional Benefits"
-                multiline
-                rows={2}
-                value={jobForm.perks.join("\n")}
-                onChange={(e) =>
-                  handleArrayFieldChange("perks", e.target.value)
-                }
-                helperText="One perk per line (e.g., flexible hours, free lunch)"
-              />
-
-              <Divider />
-
-              {/* Compensation & Application */}
-              <Typography variant="h6" color="primary">
-                Compensation & Application
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Salary Range (Text)"
-                    value={jobForm.salary}
+                    label="Description"
+                    value={jobForm.description}
                     onChange={(e) =>
                       setJobForm((prev) => ({
                         ...prev,
-                        salary: e.target.value,
-                      }))
-                    }
-                    helperText="e.g., Competitive, DOE"
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Min Salary"
-                    type="number"
-                    value={jobForm.salaryMin}
-                    onChange={(e) =>
-                      setJobForm((prev) => ({
-                        ...prev,
-                        salaryMin: e.target.value,
+                        description: e.target.value,
                       }))
                     }
                   />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Max Salary"
-                    type="number"
-                    value={jobForm.salaryMax}
-                    onChange={(e) =>
-                      setJobForm((prev) => ({
-                        ...prev,
-                        salaryMax: e.target.value,
-                      }))
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <FormControl fullWidth>
-                    <InputLabel>Currency</InputLabel>
-                    <Select
-                      value={jobForm.currency}
+                </Paper>
+
+                {/* -----------------------------------
+            SECTION: RESPONSIBILITIES + REQUIREMENTS
+        ------------------------------------ */}
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                        Responsibilities
+                      </Typography>
+
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        value={jobForm.responsibilities.join("\n")}
+                        onChange={(e) =>
+                          handleArrayFieldChange(
+                            "responsibilities",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                        Requirements
+                      </Typography>
+
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        value={jobForm.requirements.join("\n")}
+                        onChange={(e) =>
+                          handleArrayFieldChange("requirements", e.target.value)
+                        }
+                      />
+                    </Grid>
+                  </Grid>
+                </Paper>
+
+                {/* -----------------------------------
+            SECTION: SKILLS & BENEFITS
+        ------------------------------------ */}
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                        Skills
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        value={jobForm.skills.join("\n")}
+                        onChange={(e) =>
+                          handleArrayFieldChange("skills", e.target.value)
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                        Benefits
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        value={jobForm.benefits.join("\n")}
+                        onChange={(e) =>
+                          handleArrayFieldChange("benefits", e.target.value)
+                        }
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Box mt={3}>
+                    <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
+                      Perks
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={2}
+                      value={jobForm.perks.join("\n")}
                       onChange={(e) =>
-                        setJobForm((prev) => ({
-                          ...prev,
-                          currency: e.target.value,
-                        }))
+                        handleArrayFieldChange("perks", e.target.value)
                       }
-                      label="Currency"
-                    >
-                      {currencies.map((curr) => (
-                        <MenuItem key={curr} value={curr}>
-                          {curr}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={8}>
-                  <TextField
-                    fullWidth
-                    label="Application URL"
-                    type="url"
-                    value={jobForm.applicationUrl}
-                    onChange={(e) =>
-                      setJobForm((prev) => ({
-                        ...prev,
-                        applicationUrl: e.target.value,
-                      }))
-                    }
-                    helperText="External application link (optional)"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <DatePicker
-                    label="Application Deadline"
-                    value={jobForm.deadline}
-                    onChange={(date) =>
-                      setJobForm((prev) => ({ ...prev, deadline: date }))
-                    }
-                    renderInput={(params) => (
-                      <TextField {...params} fullWidth />
-                    )}
-                  />
-                </Grid>
-              </Grid>
-
-              <Divider />
-
-              {/* Settings */}
-              <Typography variant="h6" color="primary">
-                Job Settings
-              </Typography>
-              <Stack direction="row" spacing={4}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={jobForm.isActive}
-                      onChange={(e) =>
-                        setJobForm((prev) => ({
-                          ...prev,
-                          isActive: e.target.checked,
-                        }))
-                      }
-                      color="success"
                     />
-                  }
-                  label="Active (visible on careers page)"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={jobForm.isFeatured}
-                      onChange={(e) =>
-                        setJobForm((prev) => ({
-                          ...prev,
-                          isFeatured: e.target.checked,
-                        }))
+                  </Box>
+                </Paper>
+
+                {/* -----------------------------------
+            SECTION: COMPENSATION
+        ------------------------------------ */}
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                    Compensation & Application
+                  </Typography>
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Salary (Text)"
+                        value={jobForm.salary}
+                        onChange={(e) =>
+                          setJobForm((prev) => ({
+                            ...prev,
+                            salary: e.target.value,
+                          }))
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Min Salary"
+                        value={jobForm.salaryMin}
+                        onChange={(e) =>
+                          setJobForm((prev) => ({
+                            ...prev,
+                            salaryMin: e.target.value,
+                          }))
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Max Salary"
+                        value={jobForm.salaryMax}
+                        onChange={(e) =>
+                          setJobForm((prev) => ({
+                            ...prev,
+                            salaryMax: e.target.value,
+                          }))
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={2}>
+                      <FormControl fullWidth sx={{ minWidth: 150 }}>
+                        <InputLabel>Currency</InputLabel>
+                        <Select
+                          label="Currency"
+                          value={jobForm.currency}
+                          onChange={(e) =>
+                            setJobForm((prev) => ({
+                              ...prev,
+                              currency: e.target.value,
+                            }))
+                          }
+                        >
+                          {currencies.map((c) => (
+                            <MenuItem key={c} value={c}>
+                              {c}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} md={8}>
+                      <TextField
+                        fullWidth
+                        label="Application URL"
+                        value={jobForm.applicationUrl}
+                        onChange={(e) =>
+                          setJobForm((prev) => ({
+                            ...prev,
+                            applicationUrl: e.target.value,
+                          }))
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <DatePicker
+                        label="Deadline"
+                        value={jobForm.deadline}
+                        onChange={(date) =>
+                          setJobForm((prev) => ({ ...prev, deadline: date }))
+                        }
+                        renderInput={(params) => (
+                          <TextField fullWidth {...params} />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                </Paper>
+
+                {/* -----------------------------------
+            SECTION: SETTINGS
+        ------------------------------------ */}
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 3,
+                    borderRadius: 2,
+                    minHeight: 120, // FIXED HEIGHT
+                  }}
+                >
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                    Job Settings
+                  </Typography>
+
+                  <Stack spacing={2}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={jobForm.isActive}
+                          onChange={(e) =>
+                            setJobForm((prev) => ({
+                              ...prev,
+                              isActive: e.target.checked,
+                            }))
+                          }
+                        />
                       }
-                      color="warning"
+                      label="Active (visible on careers page)"
                     />
-                  }
-                  label="Featured (highlighted on careers page)"
-                />
+
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={jobForm.isFeatured}
+                          onChange={(e) =>
+                            setJobForm((prev) => ({
+                              ...prev,
+                              isFeatured: e.target.checked,
+                            }))
+                          }
+                        />
+                      }
+                      label="Featured Job"
+                    />
+                  </Stack>
+                </Paper>
               </Stack>
-            </Stack>
-          </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
+            </Box>
+
+            {/* =======================
+        RIGHT: SIDEBAR SUMMARY
+    ======================== */}
+            <Box
+              sx={{
+                width: 300,
+                borderLeft: "1px solid",
+                borderColor: "divider",
+                backgroundColor: "grey.50",
+                overflowY: "auto",
+                px: 2,
+                py: 3,
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+                Summary
+              </Typography>
+
+              <Stack spacing={2}>
+                <Chip
+                  label={jobForm.isActive ? "Active" : "Inactive"}
+                  color={jobForm.isActive ? "success" : "default"}
+                />
+
+                <Chip
+                  label={jobForm.isFeatured ? "Featured" : "Standard"}
+                  color={jobForm.isFeatured ? "warning" : "default"}
+                />
+
+                {jobForm.deadline && (
+                  <Typography variant="body2">
+                    Deadline:{" "}
+                    <strong>{jobForm.deadline.format("MMM DD, YYYY")}</strong>
+                  </Typography>
+                )}
+
+                <Divider />
+
+                <Typography variant="caption" color="text.secondary">
+                  Title Preview:
+                </Typography>
+                <Typography variant="body2" fontWeight={600}>
+                  {jobForm.title || "Untitled Job"}
+                </Typography>
+
+                <Typography variant="caption" color="text.secondary">
+                  Department:
+                </Typography>
+                <Typography variant="body2">
+                  {jobForm.department || "-"}
+                </Typography>
+
+                <Typography variant="caption" color="text.secondary">
+                  Type:
+                </Typography>
+                <Typography variant="body2">{jobForm.type || "-"}</Typography>
+              </Stack>
+            </Box>
+          </Box>
+
+          {/* ---------- FOOTER ---------- */}
+          <Box
+            sx={{
+              borderTop: "1px solid",
+              borderColor: "divider",
+              backgroundColor: "white",
+              px: 4,
+              py: 2,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <Button onClick={handleCloseDialog}>Cancel</Button>
+
             <LoadingButton
               variant="contained"
               onClick={handleSubmit}
@@ -1257,7 +1427,7 @@ const JobManager = () => {
             >
               {editingJob ? "Update Job" : "Create Job"}
             </LoadingButton>
-          </DialogActions>
+          </Box>
         </Dialog>
       </Box>
     </LocalizationProvider>

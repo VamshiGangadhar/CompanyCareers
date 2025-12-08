@@ -657,397 +657,325 @@ const TeamManager = () => {
       <Dialog
         open={isDialogOpen}
         onClose={handleCloseDialog}
-        maxWidth="lg"
+        maxWidth="md"
         fullWidth
         PaperProps={{
           sx: {
             borderRadius: 3,
-            minHeight: "70vh",
-            maxHeight: "90vh",
+            p: 0,
+            boxShadow: "0px 8px 28px rgba(0,0,0,0.12)",
           },
         }}
       >
-        <DialogTitle
+        {/* --- STRIPE ONBOARDING HEADER --- */}
+        <Box
           sx={{
-            pb: 1,
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            color: "white",
-            textAlign: "center",
-            fontSize: "1.5rem",
-            fontWeight: 600,
+            px: 4,
+            py: 3,
+            borderBottom: "1px solid #eee",
+            display: "flex",
+            flexDirection: "column",
+            gap: 0.5,
           }}
         >
-          {editingMember ? "✏️ Edit Team Member" : "➕ Add Team Member"}
-        </DialogTitle>
-        <DialogContent sx={{ p: 4 }}>
+          <Typography variant="h5" fontWeight={700}>
+            {editingMember ? "Edit Team Member" : "Add Team Member"}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Provide profile + details to showcase your team member.
+          </Typography>
+        </Box>
+
+        {/* --- CONTENT AREA --- */}
+        <DialogContent sx={{ px: 4, py: 4 }}>
           {error && (
-            <Alert
-              severity="error"
-              sx={{
-                mb: 3,
-                borderRadius: 2,
-                "& .MuiAlert-message": {
-                  fontWeight: 500,
-                },
-              }}
-            >
+            <Alert severity="error" sx={{ mb: 3 }}>
               {error}
             </Alert>
           )}
 
           <Grid container spacing={4}>
-            {/* Basic Information Section */}
-            <Grid item xs={12}>
-              <Paper
-                elevation={2}
-                sx={{
-                  p: 3,
-                  borderRadius: 2,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  background:
-                    "linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)",
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{
-                    color: "primary.main",
-                    fontWeight: 600,
-                    mb: 3,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  👤 Basic Information
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Full Name *"
-                      value={formData.name || ""}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
-                      required
-                    />
-                  </Grid>
+            {/* ------------------------------
+        TOP ROW: CONTACT (LEFT) + PHOTO (RIGHT)
+    ------------------------------- */}
+            <Grid item xs={12} md={8}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+                Contact Information
+              </Typography>
 
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Job Title *"
-                      value={formData.title || ""}
-                      onChange={(e) =>
-                        handleInputChange("title", e.target.value)
-                      }
-                      required
-                    />
-                  </Grid>
+              <Stack spacing={2}>
+                <TextField
+                  label="Email"
+                  type="email"
+                  fullWidth
+                  value={formData.email || ""}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                />
 
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Department</InputLabel>
-                      <Select
-                        value={formData.department || ""}
-                        label="Department"
-                        onChange={(e) =>
-                          handleInputChange("department", e.target.value)
-                        }
-                      >
-                        {departments.map((dept) => (
-                          <MenuItem key={dept} value={dept}>
-                            {dept}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                <TextField
+                  label="Phone"
+                  fullWidth
+                  value={formData.phone || ""}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                />
 
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Location"
-                      value={formData.location || ""}
-                      onChange={(e) =>
-                        handleInputChange("location", e.target.value)
-                      }
-                      placeholder="e.g., San Francisco, CA"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <Typography
-                      variant="subtitle1"
-                      gutterBottom
-                      sx={{ fontWeight: 600 }}
-                    >
-                      Profile Image
-                    </Typography>
-                    <Paper
-                      variant="outlined"
-                      sx={{
-                        p: 3,
-                        textAlign: "center",
-                        border: "2px dashed",
-                        borderColor: "divider",
-                        backgroundColor: "grey.50",
-                        "&:hover": {
-                          borderColor: "primary.main",
-                          backgroundColor: "primary.50",
-                        },
-                      }}
-                    >
-                      {imagePreview ? (
-                        <Box>
-                          <Avatar
-                            src={imagePreview}
-                            sx={{
-                              width: 100,
-                              height: 100,
-                              mx: "auto",
-                              mb: 2,
-                              border: "3px solid",
-                              borderColor: "primary.main",
-                            }}
-                          />
-                          <Stack
-                            direction="row"
-                            spacing={2}
-                            justifyContent="center"
-                          >
-                            <input
-                              id="image-upload-input"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              style={{ display: "none" }}
-                            />
-                            <Button
-                              variant="outlined"
-                              startIcon={<PhotoCamera />}
-                              onClick={() =>
-                                document
-                                  .getElementById("image-upload-input")
-                                  .click()
-                              }
-                              size="small"
-                            >
-                              Change Photo
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              startIcon={<Delete />}
-                              onClick={removeImage}
-                              size="small"
-                            >
-                              Remove
-                            </Button>
-                          </Stack>
-                        </Box>
-                      ) : (
-                        <Box>
-                          <CloudUpload
-                            sx={{ fontSize: 48, color: "grey.400", mb: 2 }}
-                          />
-                          <Typography
-                            variant="h6"
-                            color="text.secondary"
-                            gutterBottom
-                          >
-                            Upload Profile Image
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mb: 2 }}
-                          >
-                            Click to browse or drag and drop an image
-                          </Typography>
-                          <input
-                            id="image-upload-input"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            style={{ display: "none" }}
-                          />
-                          <Button
-                            variant="contained"
-                            startIcon={<CloudUpload />}
-                            onClick={() =>
-                              document
-                                .getElementById("image-upload-input")
-                                .click()
-                            }
-                          >
-                            Choose Image
-                          </Button>
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            sx={{ mt: 1, color: "text.secondary" }}
-                          >
-                            Supported formats: JPG, PNG, GIF (Max 5MB)
-                          </Typography>
-                        </Box>
-                      )}
-                    </Paper>
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Bio/Description"
-                      multiline
-                      rows={3}
-                      value={formData.bio || ""}
-                      onChange={(e) => handleInputChange("bio", e.target.value)}
-                      placeholder="Brief description about the team member..."
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Skills (comma-separated)"
-                      value={formData.skills?.join(", ") || ""}
-                      onChange={handleSkillsChange}
-                      placeholder="React, JavaScript, Node.js, Python"
-                    />
-                  </Grid>
-                </Grid>
-              </Paper>
+                <TextField
+                  label="Location"
+                  fullWidth
+                  value={formData.location || ""}
+                  onChange={(e) =>
+                    handleInputChange("location", e.target.value)
+                  }
+                />
+              </Stack>
             </Grid>
 
-            {/* Contact & Social Information Section */}
-            <Grid item xs={12}>
-              <Paper
-                elevation={2}
+            {/* PROFILE PHOTO ON THE RIGHT */}
+            <Grid item xs={12} md={4}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+                Profile Photo
+              </Typography>
+
+              <Box
                 sx={{
-                  p: 3,
+                  border: "1px dashed #ccc",
                   borderRadius: 2,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  background:
-                    "linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)",
+                  p: 3,
+                  textAlign: "center",
+                  cursor: "pointer",
+                  "&:hover": {
+                    borderColor: "primary.main",
+                    background: "rgba(99,91,255,0.03)",
+                  },
                 }}
+                onClick={() =>
+                  document.getElementById("image-upload-input").click()
+                }
               >
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{
-                    color: "primary.main",
-                    fontWeight: 600,
-                    mb: 3,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  📞 Contact & Social
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Email"
-                      type="email"
-                      value={formData.email || ""}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
+                {imagePreview ? (
+                  <>
+                    <Avatar
+                      src={imagePreview}
+                      sx={{
+                        width: 110,
+                        height: 110,
+                        mx: "auto",
+                        mb: 2,
+                        border: "3px solid #635bff29",
+                      }}
                     />
-                  </Grid>
+                    <Button
+                      variant="text"
+                      color="primary"
+                      size="small"
+                      onClick={() =>
+                        document.getElementById("image-upload-input").click()
+                      }
+                    >
+                      Change Photo
+                    </Button>
+                    <Button
+                      variant="text"
+                      color="error"
+                      size="small"
+                      sx={{ ml: 1 }}
+                      onClick={removeImage}
+                    >
+                      Remove
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <PhotoCamera
+                      sx={{ fontSize: 45, color: "text.secondary", mb: 1 }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Click to upload a profile photo
+                    </Typography>
+                  </>
+                )}
 
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Phone"
-                      value={formData.phone || ""}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
-                      placeholder="e.g., +1 (555) 123-4567"
-                    />
-                  </Grid>
+                <input
+                  id="image-upload-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  style={{ display: "none" }}
+                />
+              </Box>
+            </Grid>
 
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="LinkedIn URL"
-                      value={formData.linkedin || ""}
-                      onChange={(e) =>
-                        handleInputChange("linkedin", e.target.value)
-                      }
-                      placeholder="https://linkedin.com/in/username"
-                    />
-                  </Grid>
+            {/* -----------------------------------------
+        BASIC INFORMATION (UNDER CONTACT + PHOTO)
+    ------------------------------------------ */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+                Basic Information
+              </Typography>
 
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Twitter URL"
-                      value={formData.twitter || ""}
-                      onChange={(e) =>
-                        handleInputChange("twitter", e.target.value)
-                      }
-                      placeholder="https://twitter.com/username"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Website URL"
-                      value={formData.website || ""}
-                      onChange={(e) =>
-                        handleInputChange("website", e.target.value)
-                      }
-                      placeholder="https://example.com"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Join Date"
-                      type="date"
-                      value={formData.joinDate || ""}
-                      onChange={(e) =>
-                        handleInputChange("joinDate", e.target.value)
-                      }
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Full Name *"
+                    value={formData.name || ""}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                  />
                 </Grid>
-              </Paper>
+
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Job Title *"
+                    value={formData.title || ""}
+                    onChange={(e) => handleInputChange("title", e.target.value)}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth sx={{ minWidth: 180 }}>
+                    <InputLabel>Department</InputLabel>
+                    <Select
+                      label="Department"
+                      value={formData.department || ""}
+                      onChange={(e) =>
+                        handleInputChange("department", e.target.value)
+                      }
+                    >
+                      {[
+                        "Engineering",
+                        "Product",
+                        "Design",
+                        "Marketing",
+                        "Sales",
+                        "HR",
+                        "Finance",
+                        "Operations",
+                        "Customer Success",
+                        "Leadership",
+                      ].map((d) => (
+                        <MenuItem key={d} value={d}>
+                          {d}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Join Date"
+                    type="date"
+                    value={formData.joinDate || ""}
+                    onChange={(e) =>
+                      handleInputChange("joinDate", e.target.value)
+                    }
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* BIO */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                Bio
+              </Typography>
+
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                placeholder="Short description…"
+                value={formData.bio || ""}
+                onChange={(e) => handleInputChange("bio", e.target.value)}
+              />
+            </Grid>
+
+            {/* SKILLS */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                Skills
+              </Typography>
+
+              <TextField
+                fullWidth
+                placeholder="React, Node.js, Figma"
+                value={formData.skills?.join(", ") || ""}
+                onChange={handleSkillsChange}
+              />
+            </Grid>
+
+            {/* SOCIAL LINKS */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+                Social Profiles
+              </Typography>
+
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="LinkedIn"
+                    value={formData.linkedin || ""}
+                    onChange={(e) =>
+                      handleInputChange("linkedin", e.target.value)
+                    }
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Twitter"
+                    value={formData.twitter || ""}
+                    onChange={(e) =>
+                      handleInputChange("twitter", e.target.value)
+                    }
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Website"
+                    value={formData.website || ""}
+                    onChange={(e) =>
+                      handleInputChange("website", e.target.value)
+                    }
+                  />
+                </Grid>
+              </Grid>
             </Grid>
           </Grid>
         </DialogContent>
 
+        {/* --- FOOTER --- */}
         <DialogActions
           sx={{
-            p: 3,
-            backgroundColor: "grey.50",
-            borderTop: "1px solid",
-            borderColor: "divider",
-            gap: 2,
+            px: 4,
+            py: 3,
+            borderTop: "1px solid #eee",
+            display: "flex",
+            justifyContent: "space-between",
           }}
         >
           <Button onClick={handleCloseDialog}>Cancel</Button>
+
           <Button
             variant="contained"
-            onClick={handleSaveMember}
             disabled={saving}
+            onClick={handleSaveMember}
             sx={{ borderRadius: 2 }}
           >
             {saving
               ? "Saving..."
-              : (editingMember ? "Update" : "Add") + " Member"}
+              : editingMember
+              ? "Update Member"
+              : "Add Member"}
           </Button>
         </DialogActions>
       </Dialog>
