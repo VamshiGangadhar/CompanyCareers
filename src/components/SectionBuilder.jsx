@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import useCompanyStore from "../context/companyStore";
+import AIEnhancedTextField from "./AIEnhancedTextField";
+import AIEnhancedListField from "./AIEnhancedListField";
 import {
   Box,
   Paper,
@@ -530,7 +532,7 @@ const SectionBuilder = ({ slug }) => {
                                   <Divider />
 
                                   {/* Section Content Fields */}
-                                  <TextField
+                                  <AIEnhancedTextField
                                     label="Section Title"
                                     fullWidth
                                     value={section.title || ""}
@@ -541,11 +543,12 @@ const SectionBuilder = ({ slug }) => {
                                         e.target.value
                                       )
                                     }
+                                    contentType="title"
                                     variant="outlined"
                                   />
 
                                   {section.type === "hero" && (
-                                    <TextField
+                                    <AIEnhancedTextField
                                       label="Subtitle"
                                       fullWidth
                                       value={section.content.subtitle || ""}
@@ -556,13 +559,14 @@ const SectionBuilder = ({ slug }) => {
                                           e.target.value
                                         )
                                       }
+                                      contentType="subtitle"
                                       variant="outlined"
                                     />
                                   )}
 
                                   {(section.type === "about" ||
                                     section.type === "team") && (
-                                    <TextField
+                                    <AIEnhancedTextField
                                       label="Content"
                                       fullWidth
                                       multiline
@@ -583,6 +587,11 @@ const SectionBuilder = ({ slug }) => {
                                           e.target.value
                                         )
                                       }
+                                      contentType={
+                                        section.type === "about"
+                                          ? "content"
+                                          : "description"
+                                      }
                                       variant="outlined"
                                     />
                                   )}
@@ -590,11 +599,12 @@ const SectionBuilder = ({ slug }) => {
                                   {(section.type === "values" ||
                                     section.type === "benefits") && (
                                     <Box>
-                                      <TextField
-                                        label="Items (one per line)"
-                                        fullWidth
-                                        multiline
-                                        rows={4}
+                                      <AIEnhancedListField
+                                        label={`${
+                                          section.type === "values"
+                                            ? "Company Values"
+                                            : "Employee Benefits"
+                                        } (one per line)`}
                                         value={
                                           section.content.items?.join("\n") ||
                                           ""
@@ -608,8 +618,12 @@ const SectionBuilder = ({ slug }) => {
                                               .filter((item) => item.trim())
                                           )
                                         }
-                                        variant="outlined"
-                                        helperText="Enter each item on a new line"
+                                        contentType={section.type}
+                                        icon={
+                                          section.type === "values"
+                                            ? StarIcon
+                                            : BenefitsIcon
+                                        }
                                       />
 
                                       {section.content.items &&

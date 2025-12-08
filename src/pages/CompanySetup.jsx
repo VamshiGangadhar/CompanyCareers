@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import useCompanyStore from "../context/companyStore";
+import AIEnhancedTextField from "../components/AIEnhancedTextField";
 import {
   Box,
   Container,
@@ -350,15 +351,14 @@ const CompanySetup = () => {
 
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <TextField
+                <AIEnhancedTextField
                   label="Company Name"
                   value={formData.name}
-                  onChange={(e) =>
-                    handleInputChange("name", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("name", e.target.value)}
                   fullWidth
                   error={!!errors.name}
                   helperText={errors.name}
+                  contentType="title"
                 />
               </Grid>
 
@@ -366,9 +366,7 @@ const CompanySetup = () => {
                 <TextField
                   label="Company Slug"
                   value={formData.slug}
-                  onChange={(e) =>
-                    handleInputChange("slug", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("slug", e.target.value)}
                   fullWidth
                   error={!!errors.slug}
                   helperText={
@@ -379,7 +377,7 @@ const CompanySetup = () => {
               </Grid>
 
               <Grid item xs={12}>
-                <TextField
+                <AIEnhancedTextField
                   label="Description"
                   value={formData.description}
                   onChange={(e) =>
@@ -388,6 +386,7 @@ const CompanySetup = () => {
                   fullWidth
                   multiline
                   rows={3}
+                  contentType="description"
                 />
               </Grid>
 
@@ -395,9 +394,7 @@ const CompanySetup = () => {
                 <TextField
                   label="Website"
                   value={formData.website}
-                  onChange={(e) =>
-                    handleInputChange("website", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("website", e.target.value)}
                   fullWidth
                   placeholder="https://yourcompany.com"
                 />
@@ -518,7 +515,11 @@ const CompanySetup = () => {
 
               <Grid item xs={12}>
                 <Paper sx={{ p: 2, borderRadius: 2 }}>
-                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={600}
+                    sx={{ mb: 1 }}
+                  >
                     Preview
                   </Typography>
 

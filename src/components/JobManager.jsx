@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import useCompanyStore from "../context/companyStore";
+import AIEnhancedTextField from "./AIEnhancedTextField";
+import AIEnhancedListField from "./AIEnhancedListField";
 import {
   Box,
   Paper,
@@ -963,7 +965,7 @@ const JobManager = () => {
 
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
-                      <TextField
+                      <AIEnhancedTextField
                         fullWidth
                         label="Job Title *"
                         value={jobForm.title}
@@ -974,6 +976,7 @@ const JobManager = () => {
                             title: e.target.value,
                           }))
                         }
+                        contentType="title"
                       />
                     </Grid>
 
@@ -1081,7 +1084,7 @@ const JobManager = () => {
                     Job Description
                   </Typography>
 
-                  <TextField
+                  <AIEnhancedTextField
                     fullWidth
                     multiline
                     rows={4}
@@ -1093,6 +1096,7 @@ const JobManager = () => {
                         description: e.target.value,
                       }))
                     }
+                    contentType="description"
                   />
                 </Paper>
 
@@ -1106,10 +1110,8 @@ const JobManager = () => {
                         Responsibilities
                       </Typography>
 
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
+                      <AIEnhancedListField
+                        label="Responsibilities"
                         value={jobForm.responsibilities.join("\n")}
                         onChange={(e) =>
                           handleArrayFieldChange(
@@ -1117,6 +1119,7 @@ const JobManager = () => {
                             e.target.value
                           )
                         }
+                        contentType="list"
                       />
                     </Grid>
 
@@ -1125,14 +1128,13 @@ const JobManager = () => {
                         Requirements
                       </Typography>
 
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
+                      <AIEnhancedListField
+                        label="Requirements"
                         value={jobForm.requirements.join("\n")}
                         onChange={(e) =>
                           handleArrayFieldChange("requirements", e.target.value)
                         }
+                        contentType="list"
                       />
                     </Grid>
                   </Grid>
@@ -1147,14 +1149,13 @@ const JobManager = () => {
                       <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
                         Skills
                       </Typography>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
+                      <AIEnhancedListField
+                        label="Skills"
                         value={jobForm.skills.join("\n")}
                         onChange={(e) =>
                           handleArrayFieldChange("skills", e.target.value)
                         }
+                        contentType="list"
                       />
                     </Grid>
 
@@ -1162,14 +1163,13 @@ const JobManager = () => {
                       <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
                         Benefits
                       </Typography>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
+                      <AIEnhancedListField
+                        label="Benefits"
                         value={jobForm.benefits.join("\n")}
                         onChange={(e) =>
                           handleArrayFieldChange("benefits", e.target.value)
                         }
+                        contentType="benefits"
                       />
                     </Grid>
                   </Grid>
@@ -1178,14 +1178,13 @@ const JobManager = () => {
                     <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
                       Perks
                     </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={2}
+                    <AIEnhancedListField
+                      label="Perks"
                       value={jobForm.perks.join("\n")}
                       onChange={(e) =>
                         handleArrayFieldChange("perks", e.target.value)
                       }
+                      contentType="benefits"
                     />
                   </Box>
                 </Paper>

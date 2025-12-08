@@ -14,6 +14,10 @@ import {
   CircularProgress,
   Stack,
   Skeleton,
+  Slider,
+  Checkbox,
+  FormControlLabel,
+  Autocomplete,
 } from "@mui/material";
 import {
   Search,
@@ -21,7 +25,10 @@ import {
   Schedule,
   Business,
   Work,
+  TuneRounded,
+  FilterList,
 } from "@mui/icons-material";
+import toast from "react-hot-toast";
 
 const JobList = ({
   jobs = [],
@@ -36,6 +43,18 @@ const JobList = ({
     filters?.location || ""
   );
   const [selectedType, setSelectedType] = useState(filters?.type || "");
+  const [selectedDepartment, setSelectedDepartment] = useState(
+    filters?.department || ""
+  );
+  const [selectedExperience, setSelectedExperience] = useState(
+    filters?.experience || ""
+  );
+  const [salaryRange, setSalaryRange] = useState(
+    filters?.salaryRange || [0, 200000]
+  );
+  const [selectedSkills, setSelectedSkills] = useState(filters?.skills || []);
+  const [remoteOnly, setRemoteOnly] = useState(filters?.remoteOnly || false);
+  const [showFilters, setShowFilters] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -54,6 +73,100 @@ const JobList = ({
     ...new Set(jobs.map((job) => job.location).filter(Boolean)),
   ];
   const jobTypes = [...new Set(jobs.map((job) => job.type).filter(Boolean))];
+  const departments = [
+    ...new Set(jobs.map((job) => job.department).filter(Boolean)),
+  ];
+  const experienceLevels = [
+    ...new Set(jobs.map((job) => job.experienceLevel).filter(Boolean)),
+  ];
+  const allSkills = [
+    ...new Set(jobs.flatMap((job) => job.skills || []).filter(Boolean)),
+  ];
+
+  // Filter jobs based on all criteria
+  const filteredJobs = jobs.filter((job) => {
+    // Search term filter
+    const matchesSearch =
+      !searchTerm ||
+      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.department?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Location filter
+    const matchesLocation =
+      !selectedLocation || job.location === selectedLocation;
+
+    // Job type filter
+    const matchesType = !selectedType || job.type === selectedType;
+
+    // Department filter
+    const matchesDepartment =
+      !selectedDepartment || job.department === selectedDepartment;
+
+    // Experience level filter
+    const matchesExperience =
+      !selectedExperience || job.experienceLevel === selectedExperience;
+
+    // Salary range filter
+    const jobSalary = job.salaryMax || job.salaryMin || 0;
+    const matchesSalary =
+      jobSalary === 0 ||
+      (jobSalary >= salaryRange[0] && jobSalary <= salaryRange[1]);
+
+    // Skills filter
+    const matchesSkills =
+      selectedSkills.length === 0 ||
+      selectedSkills.some((skill) => job.skills?.includes(skill));
+
+    // Remote filter
+    const matchesRemote =
+      !remoteOnly ||
+      job.location?.toLowerCase().includes("remote") ||
+      job.type?.toLowerCase().includes("remote");
+
+    return (
+      matchesSearch &&
+      matchesLocation &&
+      matchesType &&
+      matchesDepartment &&
+      matchesExperience &&
+      matchesSalary &&
+      matchesSkills &&
+      matchesRemote
+    );
+  });
+
+  const handleApplyClick = (job) => {
+    toast.success(`Application submitted for ${job.title}!`, {
+      duration: 4000,
+      position: "top-center",
+      style: {
+        background: branding.primaryColor || "#1976d2",
+        color: "white",
+      },
+      icon: "🎉",
+    });
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setSelectedLocation("");
+    setSelectedType("");
+    setSelectedDepartment("");
+    setSelectedExperience("");
+    setSalaryRange([0, 200000]);
+    setSelectedSkills([]);
+    setRemoteOnly(false);
+  };
+
+  const hasActiveFilters =
+    searchTerm ||
+    selectedLocation ||
+    selectedType ||
+    selectedDepartment ||
+    selectedExperience ||
+    selectedSkills.length > 0 ||
+    remoteOnly;
 
   if (loading) {
     return (
@@ -71,16 +184,17 @@ const JobList = ({
 
   return (
     <Stack spacing={4}>
-      {/* Search and Filters */}
+      {/* Clean Search and Filters */}
       <Paper sx={{ p: 3 }}>
-        <Grid container spacing={3}>
-          {/* Search */}
-          <Grid item xs={12} md={4}>
+        {/* Main Search Bar */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
-              placeholder="Search jobs..."
+              placeholder="Search jobs by title, description, or department..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              size="medium"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -88,24 +202,26 @@ const JobList = ({
                   </InputAdornment>
                 ),
               }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
             />
           </Grid>
+        </Grid>
 
-          {/* Location Filter */}
-          <Grid item xs={12} md={4}>
+        {/* Quick Filters Row */}
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
               select
               label="Location"
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LocationOn />
-                  </InputAdornment>
-                ),
-              }}
+              size="small"
+              sx={{ minWidth: 140 }}
             >
               <MenuItem value="">All Locations</MenuItem>
               {locations.map((location) => (
@@ -116,21 +232,34 @@ const JobList = ({
             </TextField>
           </Grid>
 
-          {/* Job Type Filter */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              select
+              label="Department"
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              size="small"
+              sx={{ minWidth: 140 }}
+            >
+              <MenuItem value="">All Departments</MenuItem>
+              {departments.map((dept) => (
+                <MenuItem key={dept} value={dept}>
+                  {dept}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
               select
               label="Job Type"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Schedule />
-                  </InputAdornment>
-                ),
-              }}
+              size="small"
+              sx={{ minWidth: 140 }}
             >
               <MenuItem value="">All Types</MenuItem>
               {jobTypes.map((type) => (
@@ -140,47 +269,273 @@ const JobList = ({
               ))}
             </TextField>
           </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              select
+              label="Experience"
+              value={selectedExperience}
+              onChange={(e) => setSelectedExperience(e.target.value)}
+              size="small"
+              sx={{ minWidth: 140 }}
+            >
+              <MenuItem value="">All Levels</MenuItem>
+              {experienceLevels.map((level) => (
+                <MenuItem key={level} value={level}>
+                  {level}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
         </Grid>
+
+        {/* Advanced Filters Toggle */}
+        {(allSkills.length > 0 ||
+          jobs.some((job) => job.salaryMax || job.salaryMin)) && (
+          <Box sx={{ mt: 2, textAlign: "center" }}>
+            <Button
+              size="small"
+              onClick={() => setShowFilters(!showFilters)}
+              startIcon={<TuneRounded />}
+              variant="text"
+              sx={{ color: "text.secondary" }}
+            >
+              {showFilters ? "Hide" : "More"} Filters
+            </Button>
+          </Box>
+        )}
+
+        {/* Advanced Filters (Collapsible) */}
+        {showFilters && (
+          <Box
+            sx={{
+              mt: 3,
+              pt: 3,
+              borderTop: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Grid container spacing={3}>
+              {/* Skills Filter */}
+              {allSkills.length > 0 && (
+                <Grid item xs={12} md={6}>
+                  <Autocomplete
+                    multiple
+                    size="small"
+                    options={allSkills}
+                    value={selectedSkills}
+                    onChange={(event, newValue) => setSelectedSkills(newValue)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Skills"
+                        placeholder="Select skills..."
+                      />
+                    )}
+                    renderTags={(tagValue, getTagProps) =>
+                      tagValue.map((option, index) => (
+                        <Chip
+                          label={option}
+                          {...getTagProps({ index })}
+                          size="small"
+                          sx={{
+                            backgroundColor: branding.primaryColor || "#1976d2",
+                            color: "white",
+                            "& .MuiChip-deleteIcon": {
+                              color: "white",
+                            },
+                          }}
+                        />
+                      ))
+                    }
+                  />
+                </Grid>
+              )}
+
+              {/* Salary Range */}
+              {jobs.some((job) => job.salaryMax || job.salaryMin) && (
+                <Grid item xs={12} md={6}>
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      gutterBottom
+                      sx={{ fontWeight: 500 }}
+                    >
+                      Salary Range: ${(salaryRange[0] / 1000).toFixed(0)}k - $
+                      {(salaryRange[1] / 1000).toFixed(0)}k
+                    </Typography>
+                    <Slider
+                      value={salaryRange}
+                      onChange={(e, newValue) => setSalaryRange(newValue)}
+                      min={0}
+                      max={300000}
+                      step={5000}
+                      size="small"
+                      sx={{
+                        color: branding.primaryColor || "#1976d2",
+                        "& .MuiSlider-thumb": {
+                          width: 16,
+                          height: 16,
+                        },
+                      }}
+                    />
+                  </Box>
+                </Grid>
+              )}
+
+              {/* Remote Work Checkbox */}
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={remoteOnly}
+                      onChange={(e) => setRemoteOnly(e.target.checked)}
+                      size="small"
+                      sx={{
+                        color: branding.primaryColor || "#1976d2",
+                        "&.Mui-checked": {
+                          color: branding.primaryColor || "#1976d2",
+                        },
+                      }}
+                    />
+                  }
+                  label="Remote work only"
+                  sx={{
+                    "& .MuiFormControlLabel-label": {
+                      fontSize: "0.875rem",
+                    },
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <Box sx={{ mt: 2, textAlign: "center" }}>
+            <Button
+              size="small"
+              onClick={clearAllFilters}
+              variant="outlined"
+              color="inherit"
+              sx={{
+                borderColor: "text.secondary",
+                color: "text.secondary",
+                "&:hover": {
+                  borderColor: "text.primary",
+                  backgroundColor: "action.hover",
+                },
+              }}
+            >
+              Clear All Filters
+            </Button>
+          </Box>
+        )}
       </Paper>
 
       {/* Job Results */}
-      <Stack spacing={3}>
-        {jobs.length === 0 ? (
-          <Paper sx={{ p: 6, textAlign: "center" }}>
-            <Work sx={{ fontSize: 48, color: "grey.400", mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No jobs found
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {searchTerm || selectedLocation || selectedType
-                ? "Try adjusting your filters"
-                : "No job openings at this time"}
-            </Typography>
-          </Paper>
-        ) : (
-          jobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              branding={branding}
-              showStatus={showStatus}
+      <Box>
+        {/* Results Summary */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 3,
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+            {filteredJobs.length === jobs.length
+              ? `${filteredJobs.length} Job${
+                  filteredJobs.length !== 1 ? "s" : ""
+                }`
+              : `${filteredJobs.length} of ${jobs.length} Job${
+                  jobs.length !== 1 ? "s" : ""
+                }`}
+          </Typography>
+          {hasActiveFilters && (
+            <Chip
+              label={`${
+                [
+                  searchTerm,
+                  selectedLocation,
+                  selectedType,
+                  selectedDepartment,
+                  selectedExperience,
+                  ...selectedSkills,
+                ].filter(Boolean).length + (remoteOnly ? 1 : 0)
+              } filter${
+                [
+                  searchTerm,
+                  selectedLocation,
+                  selectedType,
+                  selectedDepartment,
+                  selectedExperience,
+                  ...selectedSkills,
+                ].filter(Boolean).length +
+                  (remoteOnly ? 1 : 0) !==
+                1
+                  ? "s"
+                  : ""
+              } active`}
+              size="small"
+              variant="outlined"
+              sx={{
+                borderColor: branding.primaryColor || "#1976d2",
+                color: branding.primaryColor || "#1976d2",
+              }}
             />
-          ))
-        )}
-      </Stack>
+          )}
+        </Box>
 
-      {/* Results count */}
-      {jobs.length > 0 && (
-        <Typography variant="body2" color="text.secondary" textAlign="center">
-          Showing {jobs.length} job{jobs.length !== 1 ? "s" : ""}
-        </Typography>
-      )}
+        {/* Job Cards */}
+        <Stack spacing={3}>
+          {filteredJobs.length === 0 ? (
+            <Paper sx={{ p: 6, textAlign: "center" }}>
+              <Work sx={{ fontSize: 48, color: "grey.400", mb: 2 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                {hasActiveFilters
+                  ? "No jobs match your criteria"
+                  : "No jobs available"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                {hasActiveFilters
+                  ? "Try adjusting your search or clearing some filters"
+                  : "Check back later for new opportunities"}
+              </Typography>
+              {hasActiveFilters && (
+                <Button variant="outlined" onClick={clearAllFilters}>
+                  Clear All Filters
+                </Button>
+              )}
+            </Paper>
+          ) : (
+            filteredJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                branding={branding}
+                showStatus={showStatus}
+                onApply={handleApplyClick}
+              />
+            ))
+          )}
+        </Stack>
+      </Box>
     </Stack>
   );
 };
 
-const JobCard = ({ job, branding = {}, showStatus = false }) => {
+const JobCard = ({ job, branding = {}, showStatus = false, onApply }) => {
   const primaryColor = branding.primaryColor || "#1976d2";
+
+  const handleApplyClick = () => {
+    if (onApply) {
+      onApply(job);
+    }
+  };
 
   return (
     <Card
@@ -265,6 +620,7 @@ const JobCard = ({ job, branding = {}, showStatus = false }) => {
           </Box>
           <Button
             variant="contained"
+            onClick={handleApplyClick}
             sx={{
               ml: 2,
               backgroundColor: primaryColor,
@@ -272,9 +628,8 @@ const JobCard = ({ job, branding = {}, showStatus = false }) => {
                 backgroundColor: primaryColor,
                 filter: "brightness(0.9)",
               },
+              minWidth: 120,
             }}
-            href={job.applicationUrl || "#"}
-            target={job.applicationUrl ? "_blank" : "_self"}
           >
             Apply Now
           </Button>

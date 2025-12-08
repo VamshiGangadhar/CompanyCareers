@@ -5,6 +5,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs").promises;
 const jwt = require("jsonwebtoken");
+const aiService = require("../services/aiService");
 
 // Helper function to verify user from token
 const verifyUserFromRequest = async (req) => {
@@ -192,6 +193,15 @@ const handleEvent = async (req, res) => {
 
       case "AUTH_VERIFY":
         return await authVerify(payload, res);
+
+      case "ENHANCE_TEXT":
+        return await enhanceText(payload, res);
+
+      case "ENHANCE_TEXT_ARRAY":
+        return await enhanceTextArray(payload, res);
+
+      case "GENERATE_CONTENT":
+        return await generateContent(payload, res);
 
       default:
         return res.status(400).json({ error: `Unknown step: ${step}` });
@@ -1604,6 +1614,109 @@ const getUserCompanies = async (payload, res) => {
     return res.status(500).json({
       success: false,
       error: error.message,
+    });
+  }
+};
+
+// AI Enhancement Functions
+const enhanceText = async (payload, res) => {
+  try {
+    console.log("🤖 [AI] Enhancing text:", payload);
+
+    const { text, contentType = "general" } = payload;
+
+    if (!text || typeof text !== "string") {
+      return res.status(400).json({
+        success: false,
+        error: "Text content is required",
+      });
+    }
+
+    const enhancedText = await aiService.enhanceText(text, contentType);
+
+    console.log("✨ [AI] Text enhancement completed");
+    return res.json({
+      success: true,
+      data: {
+        originalText: text,
+        enhancedText,
+        contentType,
+      },
+    });
+  } catch (error) {
+    console.error("❌ [AI] Text enhancement failed:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Failed to enhance text",
+    });
+  }
+};
+
+const enhanceTextArray = async (payload, res) => {
+  try {
+    console.log("🤖 [AI] Enhancing text array:", payload);
+
+    const { items, contentType = "list" } = payload;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Items array is required",
+      });
+    }
+
+    const enhancedItems = await aiService.enhanceTextArray(items, contentType);
+
+    console.log("✨ [AI] Text array enhancement completed");
+    return res.json({
+      success: true,
+      data: {
+        originalItems: items,
+        enhancedItems,
+        contentType,
+      },
+    });
+  } catch (error) {
+    console.error("❌ [AI] Text array enhancement failed:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Failed to enhance text array",
+    });
+  }
+};
+
+const generateContent = async (payload, res) => {
+  try {
+    console.log("🤖 [AI] Generating content:", payload);
+
+    const { contentType, companyContext = {} } = payload;
+
+    if (!contentType) {
+      return res.status(400).json({
+        success: false,
+        error: "Content type is required",
+      });
+    }
+
+    const generatedContent = await aiService.generateContentSuggestions(
+      contentType,
+      companyContext
+    );
+
+    console.log("✨ [AI] Content generation completed");
+    return res.json({
+      success: true,
+      data: {
+        contentType,
+        generatedContent,
+        companyContext,
+      },
+    });
+  } catch (error) {
+    console.error("❌ [AI] Content generation failed:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Failed to generate content",
     });
   }
 };

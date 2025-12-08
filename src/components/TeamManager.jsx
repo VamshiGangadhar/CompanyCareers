@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AIEnhancedTextField from "./AIEnhancedTextField";
 import {
   Box,
   Button,
@@ -815,22 +816,24 @@ const TeamManager = () => {
 
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <TextField
+                  <AIEnhancedTextField
                     fullWidth
                     required
                     label="Full Name *"
                     value={formData.name || ""}
                     onChange={(e) => handleInputChange("name", e.target.value)}
+                    contentType="title"
                   />
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
-                  <TextField
+                  <AIEnhancedTextField
                     fullWidth
                     required
                     label="Job Title *"
                     value={formData.title || ""}
                     onChange={(e) => handleInputChange("title", e.target.value)}
+                    contentType="title"
                   />
                 </Grid>
 
@@ -885,13 +888,15 @@ const TeamManager = () => {
                 Bio
               </Typography>
 
-              <TextField
+              <AIEnhancedTextField
                 fullWidth
                 multiline
                 rows={3}
+                label="Bio"
                 placeholder="Short description…"
                 value={formData.bio || ""}
                 onChange={(e) => handleInputChange("bio", e.target.value)}
+                contentType="description"
               />
             </Grid>
 
